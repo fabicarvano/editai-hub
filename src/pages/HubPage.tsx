@@ -21,7 +21,7 @@ const modules = [
   {
     icon: "❓",
     title: "Questionamentos Técnicos",
-    description: "Elaboração automática de questionamentos técnicos para impugnação de editais",
+    description: "Geração inteligente de questionamentos técnicos com apoio de IA para análise e impugnação de editais",
     badge: "Em breve",
     active: false,
   },
