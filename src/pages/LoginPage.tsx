@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { apiLogin } from "@/lib/api";
 
-const LOGO_URL = "https://i.postimg.cc/Twbjzshm/decatron.png";
+const LOGO_URL = "https://i.postimg.cc/vT1GGCpn/decatron-2.png";
 
 export default function LoginPage() {
   const navigate = useNavigate();
