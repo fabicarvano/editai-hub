@@ -3,7 +3,7 @@ import { Users, Bell, Link, Info } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import Breadcrumb from "@/components/Breadcrumb";
 
-const LOGO_URL = "https://i.postimg.cc/Twbjzshm/decatron.png";
+const LOGO_URL = "https://i.postimg.cc/vT1GGCpn/decatron-2.png";
 
 const sidebarItems = [
   { key: "usuarios", label: "Usuários", icon: Users, active: true },

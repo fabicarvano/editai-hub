@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Settings, LogOut } from "lucide-react";
 import { getNome, logout } from "@/lib/api";
 
-const LOGO_URL = "https://i.postimg.cc/Twbjzshm/decatron.png";
+const LOGO_URL = "https://i.postimg.cc/vT1GGCpn/decatron-2.png";
 
 export default function AppHeader() {
   const navigate = useNavigate();
