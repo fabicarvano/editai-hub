@@ -313,12 +313,17 @@ export default function LicitacoesPage() {
                     className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/50">
                     <td className="px-4 py-3 text-muted-foreground">{(page - 1) * perPage + idx + 1}</td>
                     <td className="max-w-[280px] px-4 py-3">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="block truncate font-medium text-foreground">{truncate(item.objeto_compra, 80)}</span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-sm"><p className="text-xs">{item.objeto_compra}</p></TooltipContent>
-                      </Tooltip>
+                      <div className="flex items-center gap-1.5">
+                        {item.capturada_em && new Date(item.capturada_em).toDateString() === new Date().toDateString() && (
+                          <span className="shrink-0 rounded-full bg-success/15 px-1.5 py-0.5 text-[10px] font-semibold text-success">Nova</span>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="block truncate font-medium text-foreground">{truncate(item.objeto_compra, 80)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm"><p className="text-xs">{item.objeto_compra}</p></TooltipContent>
+                        </Tooltip>
+                      </div>
                     </td>
                     <td className="max-w-[180px] truncate px-4 py-3 text-muted-foreground">{item.orgao_razao_social || item.orgao || "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{item.uf || "—"}</td>
