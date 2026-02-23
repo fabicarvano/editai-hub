@@ -184,11 +184,8 @@ export default function AnalisePage() {
               <div className="rounded-xl border bg-card p-6">
                 <h2 className="text-xl font-bold text-foreground">Nova Análise</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Selecione o tipo e faça o upload do edital
+                  Selecione o tipo e faça o upload do documento
                 </p>
-
-                {/* Step 1 */}
-                <h3 className="mb-3 mt-6 text-sm font-semibold text-foreground">1. Tipo de análise</h3>
                 {tipos.length === 0 ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" /> Carregando tipos...
@@ -348,7 +345,7 @@ export default function AnalisePage() {
                   className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Analisar Edital
+                  Analisar Documento
                 </button>
 
                 {uploadError && (
