@@ -83,6 +83,7 @@ export default function LicitacoesPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    console.log("buscando licitacoes...");
     try {
       const params: Record<string, string | number> = { page, per_page: perPage };
       if (appliedFilters.busca) params.busca = appliedFilters.busca;

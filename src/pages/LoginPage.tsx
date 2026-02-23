@@ -18,6 +18,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
+      localStorage.removeItem("edital_bot_token");
+      localStorage.removeItem("edital_bot_nome");
+      localStorage.removeItem("edital_bot_role");
       await apiLogin(email, senha);
       navigate("/hub");
     } catch (err: any) {
