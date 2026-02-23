@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Upload, X, FileText, CheckCircle, Clock, AlertCircle, Loader2, RotateCcw } from "lucide-react";
+import { Upload, X, FileText, CheckCircle, Clock, AlertCircle, Loader2, RotateCcw, Target, FileSearch, FileLock2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import Breadcrumb from "@/components/Breadcrumb";
 import { fetchTiposAnalise, uploadEdital, fetchStatus, fetchHistorico } from "@/lib/api";
@@ -194,23 +194,95 @@ export default function AnalisePage() {
                     <Loader2 className="h-4 w-4 animate-spin" /> Carregando tipos...
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-3">
-                    {tipos.map((t) => (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {/* Card 1 — GO/NO-GO */}
+                    {tipos[0] && (
                       <button
-                        key={t.id}
-                        onClick={() => setTipoSelecionado(t.id)}
-                        className={`rounded-lg border px-4 py-3 text-left transition-all ${
-                          tipoSelecionado === t.id
-                            ? "border-primary bg-accent shadow-sm"
-                            : "border-border hover:border-primary/40"
+                        key={tipos[0].id}
+                        onClick={() => setTipoSelecionado(tipos[0].id)}
+                        className={`group relative flex cursor-pointer flex-col items-start rounded-2xl border-2 p-7 text-left transition-all duration-300 ${
+                          tipoSelecionado === tipos[0].id
+                            ? "border-[#0090d4] shadow-[0_0_0_4px_rgba(0,144,212,0.15),0_4px_16px_rgba(0,144,212,0.2)]"
+                            : "border-[#e5e7eb] shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:-translate-y-1 hover:border-[#0090d4] hover:shadow-[0_0_0_3px_rgba(0,144,212,0.2),0_8px_24px_rgba(0,144,212,0.25)]"
                         }`}
+                        style={{
+                          background: tipoSelecionado === tipos[0].id
+                            ? "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)"
+                            : undefined,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (tipoSelecionado !== tipos[0].id) {
+                            (e.currentTarget as HTMLElement).style.background = "linear-gradient(135deg, #f8fbff 0%, #eff8ff 100%)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (tipoSelecionado !== tipos[0].id) {
+                            (e.currentTarget as HTMLElement).style.background = "";
+                          }
+                        }}
                       >
-                        <span className="block text-sm font-semibold text-foreground">{t.titulo}</span>
-                        {t.descricao && (
-                          <span className="mt-0.5 block text-xs text-muted-foreground">{t.descricao}</span>
-                        )}
+                        <Target
+                          size={40}
+                          className={`mb-3 transition-transform duration-300 group-hover:scale-[1.12] ${
+                            tipoSelecionado === tipos[0].id ? "text-[#1a2744]" : "text-[#0090d4]"
+                          }`}
+                        />
+                        <span className="block text-sm font-bold text-foreground">Análise GO/NO-GO</span>
+                        <span className="mt-1 block text-xs text-muted-foreground">Avalia aderência ao portfólio e decide se vale participar</span>
                       </button>
-                    ))}
+                    )}
+
+                    {/* Card 2 — Análise do TR */}
+                    {tipos[1] && (
+                      <button
+                        key={tipos[1].id}
+                        onClick={() => setTipoSelecionado(tipos[1].id)}
+                        className={`group relative flex cursor-pointer flex-col items-start rounded-2xl border-2 p-7 text-left transition-all duration-300 ${
+                          tipoSelecionado === tipos[1].id
+                            ? "border-[#0090d4] shadow-[0_0_0_4px_rgba(0,144,212,0.15),0_4px_16px_rgba(0,144,212,0.2)]"
+                            : "border-[#e5e7eb] shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:-translate-y-1 hover:border-[#0090d4] hover:shadow-[0_0_0_3px_rgba(0,144,212,0.2),0_8px_24px_rgba(0,144,212,0.25)]"
+                        }`}
+                        style={{
+                          background: tipoSelecionado === tipos[1].id
+                            ? "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)"
+                            : undefined,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (tipoSelecionado !== tipos[1].id) {
+                            (e.currentTarget as HTMLElement).style.background = "linear-gradient(135deg, #f8fbff 0%, #eff8ff 100%)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (tipoSelecionado !== tipos[1].id) {
+                            (e.currentTarget as HTMLElement).style.background = "";
+                          }
+                        }}
+                      >
+                        <FileSearch
+                          size={40}
+                          className={`mb-3 transition-transform duration-300 group-hover:scale-[1.12] ${
+                            tipoSelecionado === tipos[1].id ? "text-[#1a2744]" : "text-[#0090d4]"
+                          }`}
+                        />
+                        <span className="block text-sm font-bold text-foreground">Análise do TR</span>
+                        <span className="mt-1 block text-xs text-muted-foreground">Laudo técnico completo: escopo, SLAs, exigências, riscos e scorecard</span>
+                      </button>
+                    )}
+
+                    {/* Card 3 — Análise de Minuta (INATIVO) */}
+                    <div
+                      className="relative flex cursor-not-allowed flex-col items-start rounded-2xl border-2 border-[#e5e7eb] p-7 opacity-[0.55] shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                    >
+                      <span
+                        className="absolute right-3 top-3 rounded-full px-2 py-0.5 font-medium"
+                        style={{ background: "#f3f4f6", color: "#6b7280", fontSize: "11px" }}
+                      >
+                        Em breve
+                      </span>
+                      <FileLock2 size={40} className="mb-3 text-[#9ca3af]" />
+                      <span className="block text-sm font-bold text-muted-foreground">Análise de Minuta</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">Revisão jurídica automatizada de minutas contratuais</span>
+                    </div>
                   </div>
                 )}
 
