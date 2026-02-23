@@ -1,5 +1,5 @@
 const API_EDITAL = "https://api.atria.ia.br";
-const API_LICITACOES = "http://207.38.88.213:8000";
+const API_LICITACOES = "https://api.atria.ia.br/pncp";
 
 export function getToken(): string | null {
   return localStorage.getItem("edital_bot_token");
