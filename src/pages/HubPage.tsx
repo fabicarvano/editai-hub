@@ -15,8 +15,9 @@ const modules = [
     icon: "📰",
     title: "Lista de Publicações",
     description: "Monitoramento automático de editais publicados nos portais governamentais",
-    badge: "Em breve",
-    active: false,
+    badge: "Disponível",
+    active: true,
+    path: "/licitacoes",
   },
   {
     icon: "❓",

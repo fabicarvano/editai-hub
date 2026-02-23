@@ -8,6 +8,7 @@ import LoginPage from "./pages/LoginPage";
 import HubPage from "./pages/HubPage";
 import AnalisePage from "./pages/AnalisePage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
+import LicitacoesPage from "./pages/LicitacoesPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/hub" element={<ProtectedRoute><HubPage /></ProtectedRoute>} />
           <Route path="/analise" element={<ProtectedRoute><AnalisePage /></ProtectedRoute>} />
+          <Route path="/licitacoes" element={<ProtectedRoute><LicitacoesPage /></ProtectedRoute>} />
           <Route path="/configuracoes" element={<ProtectedRoute><ConfiguracoesPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
