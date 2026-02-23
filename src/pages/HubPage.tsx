@@ -6,7 +6,7 @@ const modules = [
   {
     icon: "📋",
     title: "Análise de Editais",
-    description: "Análise GO/NO-GO e laudo técnico de Termos de Referência com inteligência artificial",
+    description: "Análise prévia de edital, análise técnica de TR e análise de minuta de contrato por inteligência artificial",
     badge: "Disponível",
     active: true,
     path: "/analise",
