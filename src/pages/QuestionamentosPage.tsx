@@ -56,6 +56,9 @@ export default function QuestionamentosPage() {
   const [consolidado, setConsolidado] = useState("");
   const [gerando, setGerando] = useState(false);
   const [buscaItens, setBuscaItens] = useState("");
+  const [addManual, setAddManual] = useState(false);
+  const [manualNumero, setManualNumero] = useState("");
+  const [manualTrecho, setManualTrecho] = useState("");
 
   // upload state
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -395,7 +398,16 @@ export default function QuestionamentosPage() {
                 </TabsList>
 
                 <TabsContent value="itens" className="flex flex-1 flex-col overflow-hidden px-2 pb-2">
-                  <div className="relative mb-2 mt-1">
+                  {/* Counter */}
+                  {safeItens.length > 0 && (() => {
+                    const niveis = new Set(safeItens.map(i => i.nivel ?? 1));
+                    return (
+                      <p className="mb-1 mt-1 text-[10px] text-muted-foreground">
+                        {safeItens.length} itens • {niveis.size} {niveis.size === 1 ? "nível" : "níveis"}
+                      </p>
+                    );
+                  })()}
+                  <div className="relative mb-2">
                     <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       placeholder="Buscar item…"
@@ -405,9 +417,19 @@ export default function QuestionamentosPage() {
                     />
                   </div>
                   <ScrollArea className="flex-1">
-                    <div className="space-y-1 pr-2">
+                    <div className="space-y-0.5 pr-2">
                       {itensFiltrados.map((it) => {
                         const naFila = itemNaFila(it.numero_item);
+                        const nivel = it.nivel ?? 1;
+                        const indent = nivel <= 1 ? 0 : nivel === 2 ? 12 : nivel === 3 ? 24 : 12 * Math.min(nivel - 1, 5);
+                        const badgeClass = nivel <= 1
+                          ? "bg-blue-800 text-white"
+                          : nivel === 2
+                          ? "bg-blue-500 text-white"
+                          : nivel === 3
+                          ? "bg-blue-300 text-blue-900"
+                          : "bg-slate-300 text-slate-700";
+                        const textClass = nivel <= 1 ? "font-semibold text-xs" : nivel >= 4 ? "text-[11px] text-muted-foreground" : "text-xs";
                         return (
                           <button
                             key={it.numero_item}
@@ -419,10 +441,11 @@ export default function QuestionamentosPage() {
                                 adicionarNaFila(it);
                               }
                             }}
-                            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent"
+                            style={{ paddingLeft: `${8 + indent}px` }}
+                            className="flex w-full items-center gap-2 rounded-md py-1.5 pr-2 text-left hover:bg-accent"
                           >
-                            <Badge variant="secondary" className="shrink-0 text-[10px]">{it.numero_item}</Badge>
-                            <span className="flex-1 truncate">{(it.titulo_item ?? "").slice(0, 60)}</span>
+                            <Badge variant="secondary" className={`shrink-0 text-[10px] border-0 ${badgeClass}`}>{it.numero_item}</Badge>
+                            <span className={`flex-1 truncate ${textClass}`}>{(it.titulo_item ?? "").slice(0, 60)}</span>
                             {naFila && <Check className="h-3.5 w-3.5 shrink-0 text-green-600" />}
                           </button>
                         );
@@ -432,6 +455,53 @@ export default function QuestionamentosPage() {
                       )}
                     </div>
                   </ScrollArea>
+
+                  {/* Add manual item */}
+                  <div className="border-t border-border pt-2 mt-1">
+                    {!addManual ? (
+                      <Button variant="outline" size="sm" className="w-full gap-1 text-xs" onClick={() => setAddManual(true)}>
+                        <Plus className="h-3 w-3" /> Adicionar item manualmente
+                      </Button>
+                    ) : (
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Número do item (ex: 3.2.1.4.)"
+                          value={manualNumero}
+                          onChange={(e) => setManualNumero(e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                        <Textarea
+                          placeholder="Trecho do edital"
+                          value={manualTrecho}
+                          onChange={(e) => setManualTrecho(e.target.value)}
+                          className="min-h-[60px] text-xs"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 text-xs"
+                            disabled={!manualNumero.trim() || !sessaoId}
+                            onClick={async () => {
+                              await adicionarNaFila({
+                                numero_item: manualNumero.trim(),
+                                trecho_original: manualTrecho.trim(),
+                                titulo_item: manualNumero.trim(),
+                                objetivo: null,
+                              });
+                              setManualNumero("");
+                              setManualTrecho("");
+                              setAddManual(false);
+                            }}
+                          >
+                            Adicionar à fila
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-xs" onClick={() => { setAddManual(false); setManualNumero(""); setManualTrecho(""); }}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="fila" className="flex flex-1 flex-col overflow-hidden px-2 pb-2">
