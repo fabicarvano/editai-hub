@@ -80,6 +80,7 @@ export default function LicitacoesPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [leadOpen, setLeadOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [apenasAtivas, setApenasAtivas] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -97,6 +98,7 @@ export default function LicitacoesPage() {
       if (appliedFilters.valor_min) params.valor_min = appliedFilters.valor_min;
       if (appliedFilters.valor_max) params.valor_max = appliedFilters.valor_max;
       if (appliedFilters.notificado) params.notificado = appliedFilters.notificado;
+      if (apenasAtivas) { params.enc_de = new Date().toISOString().slice(0, 10); }
       if (sort === "recentes") { params.ordem = "capturada_em"; params.direcao = "desc"; }
       else if (sort === "encerramento") { params.ordem = "data_encerramento_proposta"; params.direcao = "asc"; }
       else if (sort === "valor") { params.ordem = "valor_total_estimado"; params.direcao = "desc"; }
@@ -105,7 +107,7 @@ export default function LicitacoesPage() {
       setData(res);
     } catch { }
     setLoading(false);
-  }, [page, perPage, sort, appliedFilters]);
+  }, [page, perPage, sort, appliedFilters, apenasAtivas]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -253,6 +255,11 @@ export default function LicitacoesPage() {
           <span className="text-sm text-muted-foreground">
             <strong className="text-foreground">{totalCount}</strong> registros encontrados
           </span>
+          {apenasAtivas && (
+            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+              Encerramento futuro
+            </span>
+          )}
 
           {activeFilterEntries.map(([key, val]) => (
             <span key={key} className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
@@ -275,6 +282,15 @@ export default function LicitacoesPage() {
               <option value={20}>20 / página</option>
               <option value={50}>50 / página</option>
             </select>
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground select-none">
+              <span>Apenas ativas</span>
+              <div
+                onClick={() => { setApenasAtivas(!apenasAtivas); setPage(1); }}
+                className={`relative h-5 w-9 rounded-full transition-colors ${apenasAtivas ? "bg-primary" : "bg-muted"}`}
+              >
+                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${apenasAtivas ? "translate-x-4" : "translate-x-0.5"}`} />
+              </div>
+            </label>
           </div>
         </div>
 
