@@ -34,6 +34,16 @@ async function handleResponse(res: Response) {
   return res;
 }
 
+/** Authenticated fetch helper — prepends API_EDITAL and adds auth headers */
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(`${API_EDITAL}${path}`, {
+    ...init,
+    headers: { ...authHeaders(), ...init?.headers },
+  });
+  await handleResponse(res);
+  return res;
+}
+
 export async function apiLogin(email: string, senha: string) {
   const res = await fetch(`${API_EDITAL}/auth/login`, {
     method: "POST",
