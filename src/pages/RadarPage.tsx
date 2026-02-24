@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch } from "@/lib/api";
+import {
+  fetchRadarKpis, fetchRadarPorCategoria, fetchRadarPorEsfera,
+  fetchRadarPorUf, fetchRadarTimeline, fetchRadarTopOrgaos,
+  fetchRadarItens, fetchRadarFiltrosOpcoes,
+} from "@/lib/api";
 import AppHeader from "@/components/AppHeader";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,7 +80,7 @@ export default function RadarPage() {
   const [showFiltros, setShowFiltros] = useState(false);
 
   /* ── Param builder ── */
-  const buildParams = (f: FiltrosRadar) => {
+  const buildParams = (f: FiltrosRadar): Record<string, string> => {
     const p: Record<string, string> = {};
     if (f.busca) p.busca = f.busca;
     if (f.uf) p.uf = f.uf;
@@ -92,21 +96,21 @@ export default function RadarPage() {
     if (f.municipio) p.municipio = f.municipio;
     if (f.ano) p.ano = f.ano;
     p.apenas_ativos = f.apenas_ativos ? "true" : "false";
-    return new URLSearchParams(p).toString();
+    return p;
   };
 
   /* ── Data loaders ── */
   const carregarDashboard = useCallback(async (f: FiltrosRadar) => {
     setCarregando(true);
-    const qs = buildParams(f);
+    const params = buildParams(f);
     try {
       const [kpisR, catR, esfR, ufR, tlR, orgR] = await Promise.all([
-        apiFetch(`/api/radar/kpis?${qs}`).then(r => r.json()),
-        apiFetch(`/api/radar/por-categoria?limit=10&${qs}`).then(r => r.json()),
-        apiFetch(`/api/radar/por-esfera?${qs}`).then(r => r.json()),
-        apiFetch(`/api/radar/por-uf?${qs}`).then(r => r.json()),
-        apiFetch(`/api/radar/timeline?${qs}`).then(r => r.json()),
-        apiFetch(`/api/radar/top-orgaos?limit=10&${qs}`).then(r => r.json()),
+        fetchRadarKpis(params),
+        fetchRadarPorCategoria(params),
+        fetchRadarPorEsfera(params),
+        fetchRadarPorUf(params),
+        fetchRadarTimeline(params),
+        fetchRadarTopOrgaos(params),
       ]);
       if (kpisR.success) setKpis(kpisR.data);
       if (catR.success) setPorCategoria(catR.data);
@@ -123,9 +127,9 @@ export default function RadarPage() {
 
   const carregarItens = useCallback(async (f: FiltrosRadar, pg: number, ob: string, od: string) => {
     setCarregandoItens(true);
-    const qs = buildParams(f);
+    const params = buildParams(f);
     try {
-      const r = await apiFetch(`/api/radar/itens?${qs}&page=${pg}&limit=50&order_by=${ob}&order_dir=${od}`).then(r => r.json());
+      const r = await fetchRadarItens({ ...params, page: pg, limit: 50, order_by: ob, order_dir: od });
       if (r.success) {
         setItens(r.data.itens);
         setPaginacao(r.data.paginacao);
@@ -139,7 +143,7 @@ export default function RadarPage() {
 
   /* ── Effects ── */
   useEffect(() => {
-    apiFetch("/api/radar/filtros-opcoes").then(r => r.json()).then(d => {
+    fetchRadarFiltrosOpcoes().then(d => {
       if (d.success) setOpcoesFiltros(d.data);
     }).catch(() => {});
   }, []);
@@ -155,8 +159,8 @@ export default function RadarPage() {
 
   /* ── CSV export ── */
   const exportarCSV = async () => {
-    const qs = buildParams(filtrosAplicados);
-    const r = await apiFetch(`/api/radar/itens?${qs}&limit=9999&page=1`).then(r => r.json());
+    const params = buildParams(filtrosAplicados);
+    const r = await fetchRadarItens({ ...params, limit: 9999, page: 1 });
     if (!r.success) return;
     const cols = ["orgao_entidade", "pdm_descricao", "categoria", "uf", "esfera_nome", "poder_nome", "quantidade_estimada", "valor_unitario", "valor_total_estimado", "data_desejada"];
     const header = cols.join(";");
