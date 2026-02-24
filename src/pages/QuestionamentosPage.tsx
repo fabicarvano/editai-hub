@@ -120,7 +120,7 @@ export default function QuestionamentosPage() {
 
   // ─── CONSTRUIR ÁRVORE ───
   const construirArvore = useCallback((itens: ItemDetectado[]): NoArvore[] => {
-    const ordenados = [...itens].sort((a, b) => {
+    const ordenados = [...itens].map(i => ({ ...i, nivel: i.nivel || 1 })).sort((a, b) => {
       const pa = a.numero_item.replace(/\.$/, "").split(".").map(Number);
       const pb = b.numero_item.replace(/\.$/, "").split(".").map(Number);
       for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
@@ -314,10 +314,12 @@ export default function QuestionamentosPage() {
     setErroUpload("");
     try {
       const res = await uploadEditalQ(uploadArquivo);
-      const sid = res.data?.sessao_id;
+      const sid = res.data?.sessao_id ?? res.sessao_id;
       setSessaoId(sid);
-      setSessaoInfo(res.data);
-      setItensDetectados(Array.isArray(res.data?.itens) ? res.data.itens : []);
+      setSessaoInfo(res.data ?? res);
+      const itensArray = Array.isArray(res.data?.itens) ? res.data.itens : Array.isArray(res?.itens) ? res.itens : [];
+      console.log("itensDetectados recebidos após upload:", itensArray);
+      setItensDetectados(itensArray);
       setFilaItens([]);
       setGerados([]);
       setModo("editor");
@@ -330,12 +332,29 @@ export default function QuestionamentosPage() {
   const carregarRascunho = async (id: number) => {
     try {
       const res = await fetchRascunho(id);
-      const d = res.data;
+      const d = res.data ?? res;
       setSessaoId(d.sessao?.id ?? d.sessao_id ?? id);
       setSessaoInfo(d.sessao ?? d);
-      setItensDetectados([]);
       setFilaItens(Array.isArray(d.itens) ? d.itens : []);
       setGerados((Array.isArray(d.itens) ? d.itens : []).filter((i: any) => i?.status === "gerado"));
+
+      // Buscar itens detectados separadamente
+      try {
+        const resItens = await fetchItensDetectados(id);
+        const itensArr = Array.isArray(resItens?.data?.itens_detectados)
+          ? resItens.data.itens_detectados
+          : Array.isArray(resItens?.data?.itens)
+          ? resItens.data.itens
+          : Array.isArray(resItens?.data)
+          ? resItens.data
+          : [];
+        console.log("itensDetectados recebidos ao continuar rascunho:", itensArr);
+        setItensDetectados(itensArr);
+      } catch {
+        console.warn("Não foi possível carregar itens detectados para o rascunho", id);
+        setItensDetectados([]);
+      }
+
       setModo("editor");
     } catch {
       toast({ title: "Erro ao carregar rascunho", variant: "destructive" });
@@ -581,7 +600,7 @@ export default function QuestionamentosPage() {
               <div className="px-3 pt-3 pb-2">
                 <p className="text-[11px] text-muted-foreground">
                   {itensDetectados.length > 0
-                    ? `${itensDetectados.length} itens detectados • ${Math.max(...itensDetectados.map((i) => i.nivel), 0)} níveis`
+                    ? `${itensDetectados.length} itens detectados • ${Math.max(...itensDetectados.map((i) => i.nivel || 1), 0)} níveis`
                     : filaItens.length > 0
                     ? `${filaItens.length} itens na fila`
                     : "Nenhum item"}
