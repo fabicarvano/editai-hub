@@ -214,6 +214,13 @@ export async function deletarRascunho(sessaoId: number) {
   return res.json();
 }
 
+export async function fetchRadarKpis(params: Record<string, string | number> = {}) {
+  const qs = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString();
+  const res = await fetch(`${API_EDITAL}/api/radar/kpis${qs ? '?' + qs : ''}`, { headers: authHeaders() });
+  await handleResponse(res);
+  return res.json();
+}
+
 export async function exportarDocx(sessaoId: number, empresa: string, responsavel: string) {
   const res = await fetch(`${API_EDITAL}/api/questionamentos/exportar`, {
     method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
