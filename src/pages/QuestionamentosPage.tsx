@@ -128,9 +128,8 @@ export default function QuestionamentosPage() {
       const sid = res.data?.sessao_id;
       setSessaoId(sid);
       setSessaoInfo(res.data);
-      const itensRes = await fetchItensDetectados(sid);
-      setItensDetectados(itensRes.data ?? []);
-      setFila(res.data?.fila ?? []);
+      setItensDetectados(Array.isArray(res.data?.itens) ? res.data.itens : []);
+      setFila(Array.isArray(res.data?.fila) ? res.data.fila : []);
       setModo("editor");
     } catch (e: any) {
       setUploadError(e.message || "Erro ao processar edital");
@@ -142,10 +141,10 @@ export default function QuestionamentosPage() {
     try {
       const res = await fetchRascunho(id);
       const d = res.data;
-      setSessaoId(d.sessao_id ?? id);
-      setSessaoInfo(d);
-      setItensDetectados(d.itens_detectados ?? []);
-      setFila(d.fila ?? []);
+      setSessaoId(d.sessao?.id ?? d.sessao_id ?? id);
+      setSessaoInfo(d.sessao ?? d);
+      setItensDetectados(Array.isArray(d.itens) ? d.itens : []);
+      setFila(Array.isArray(d.itens) ? d.itens : []);
       setModo("editor");
     } catch {
       toast({ title: "Erro ao carregar rascunho", variant: "destructive" });
@@ -244,14 +243,17 @@ export default function QuestionamentosPage() {
     [fila]
   );
 
-  const itensFiltrados = itensDetectados.filter(
+  const safeItens = Array.isArray(itensDetectados) ? itensDetectados : [];
+  const safeFila = Array.isArray(fila) ? fila : [];
+
+  const itensFiltrados = safeItens.filter(
     (i) =>
       !buscaItens ||
       i.titulo_item?.toLowerCase().includes(buscaItens.toLowerCase()) ||
       i.numero_item?.toLowerCase().includes(buscaItens.toLowerCase())
   );
 
-  const qtdGerados = fila.filter((i) => i.status === "gerado").length;
+  const qtdGerados = safeFila.filter((i) => i.status === "gerado").length;
 
   const voltar = () => {
     setModo("inicio");
