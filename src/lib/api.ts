@@ -126,3 +126,105 @@ export async function alterarStatusUsuario(id: number, active: boolean) {
   await handleResponse(res);
   return res.json();
 }
+
+// ——— Questionamentos Técnicos ———
+
+export async function uploadEditalQ(arquivo: File) {
+  const formData = new FormData();
+  formData.append("arquivo", arquivo);
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/upload`, {
+    method: "POST", headers: authHeaders(), body: formData,
+  });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function fetchItensDetectados(sessaoId: number) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/itens/${sessaoId}`, { headers: authHeaders() });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function adicionarItemFila(sessaoId: number, item: Record<string, any>) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/sessao/${sessaoId}/item`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(item),
+  });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function atualizarItemFila(sessaoId: number, itemId: number, item: Record<string, any>) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/sessao/${sessaoId}/item/${itemId}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(item),
+  });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function removerItemFila(sessaoId: number, itemId: number) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/sessao/${sessaoId}/item/${itemId}`, {
+    method: "DELETE", headers: authHeaders(),
+  });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function gerarQuestionamento(sessaoId: number, itemId: number) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/gerar`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ sessao_id: sessaoId, item_id: itemId }),
+  });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function gerarTodosQuestionamentos(sessaoId: number) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/gerar-todos?sessao_id=${sessaoId}`, {
+    method: "POST", headers: authHeaders(),
+  });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function fetchConsolidado(sessaoId: number) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/consolidado/${sessaoId}`, { headers: authHeaders() });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function fetchRascunhos() {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/rascunhos`, { headers: authHeaders() });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function fetchRascunho(sessaoId: number) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/rascunho/${sessaoId}`, { headers: authHeaders() });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function deletarRascunho(sessaoId: number) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/rascunho/${sessaoId}`, {
+    method: "DELETE", headers: authHeaders(),
+  });
+  await handleResponse(res);
+  return res.json();
+}
+
+export async function exportarDocx(sessaoId: number, empresa: string, responsavel: string) {
+  const res = await fetch(`${API_EDITAL}/api/questionamentos/exportar`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ sessao_id: sessaoId, empresa, responsavel }),
+  });
+  await handleResponse(res);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Questionamentos_${sessaoId}_${new Date().toISOString().slice(0, 10)}.docx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
