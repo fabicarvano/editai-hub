@@ -23,8 +23,9 @@ const modules = [
     icon: "❓",
     title: "Questionamentos Técnicos",
     description: "Geração inteligente de questionamentos técnicos com apoio de IA para análise e impugnação de editais",
-    badge: "Em breve",
-    active: false,
+    badge: "Disponível",
+    active: true,
+    path: "/questionamentos",
   },
 ];
 

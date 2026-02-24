@@ -9,6 +9,7 @@ import HubPage from "./pages/HubPage";
 import AnalisePage from "./pages/AnalisePage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import LicitacoesPage from "./pages/LicitacoesPage";
+import QuestionamentosPage from "./pages/QuestionamentosPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/analise" element={<ProtectedRoute><AnalisePage /></ProtectedRoute>} />
           <Route path="/licitacoes" element={<ProtectedRoute><LicitacoesPage /></ProtectedRoute>} />
           <Route path="/configuracoes" element={<ProtectedRoute><ConfiguracoesPage /></ProtectedRoute>} />
+          <Route path="/questionamentos" element={<ProtectedRoute><QuestionamentosPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
