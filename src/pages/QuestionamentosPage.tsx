@@ -120,9 +120,19 @@ export default function QuestionamentosPage() {
 
   // ─── CONSTRUIR ÁRVORE ───
   const construirArvore = useCallback((itens: ItemDetectado[]): NoArvore[] => {
-    const ordenados = [...itens].map(i => ({ ...i, nivel: i.nivel || 1 })).sort((a, b) => {
-      const pa = a.numero_item.replace(/\.$/, "").split(".").map(Number);
-      const pb = b.numero_item.replace(/\.$/, "").split(".").map(Number);
+    if (!itens || itens.length === 0) return [];
+
+    // Normalizar: garantir nivel e numero sem ponto final
+    const normalizados = itens.map(i => ({
+      ...i,
+      nivel: i.nivel || 1,
+      _num: i.numero_item.replace(/\.$/, ''),
+    }));
+
+    // Ordenar numericamente por todos os segmentos
+    const ordenados = [...normalizados].sort((a, b) => {
+      const pa = a._num.split('.').map(Number);
+      const pb = b._num.split('.').map(Number);
       for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
         const diff = (pa[i] || 0) - (pb[i] || 0);
         if (diff !== 0) return diff;
@@ -130,29 +140,36 @@ export default function QuestionamentosPage() {
       return 0;
     });
 
-    const ehFilhoDirecto = (pai: string, filho: string): boolean => {
-      const paiLimpo = pai.replace(/\.$/, "");
-      const filhoLimpo = filho.replace(/\.$/, "");
-      const paiPartes = paiLimpo.split(".");
-      const filhoPartes = filhoLimpo.split(".");
-      if (filhoPartes.length !== paiPartes.length + 1) return false;
-      return paiPartes.every((p, i) => p === filhoPartes[i]);
-    };
+    // Mapa de numero → nó para lookup O(1)
+    const mapa = new Map<string, NoArvore>();
+    const raizes: NoArvore[] = [];
 
-    const construirNos = (itensLocais: ItemDetectado[], nivelAtual: number): NoArvore[] => {
-      const nosDoNivel = itensLocais.filter((i) => i.nivel === nivelAtual);
-      return nosDoNivel.map((item) => ({
-        item,
-        filhos: construirNos(
-          itensLocais.filter((i) => ehFilhoDirecto(item.numero_item, i.numero_item)),
-          nivelAtual + 1
-        ),
-      }));
-    };
+    for (const item of ordenados) {
+      const no: NoArvore = { item: { ...item, nivel: item.nivel }, filhos: [] };
+      mapa.set(item._num, no);
 
-    if (ordenados.length === 0) return [];
-    const nivelMinimo = ordenados.length > 0 ? Math.min(...ordenados.map((i) => i.nivel || 1)) : 1;
-    return construirNos(ordenados, nivelMinimo);
+      const segmentos = item._num.split('.');
+
+      if (segmentos.length <= 1) {
+        raizes.push(no);
+      } else {
+        let paiEncontrado = false;
+        for (let i = segmentos.length - 1; i >= 1; i--) {
+          const numPai = segmentos.slice(0, i).join('.');
+          const noPai = mapa.get(numPai);
+          if (noPai) {
+            noPai.filhos.push(no);
+            paiEncontrado = true;
+            break;
+          }
+        }
+        if (!paiEncontrado) {
+          raizes.push(no);
+        }
+      }
+    }
+
+    return raizes;
   }, []);
 
   useEffect(() => {
@@ -162,7 +179,7 @@ export default function QuestionamentosPage() {
       // Expandir todos os nós de nível 1 automaticamente
       const nivel1Nums = itensDetectados
         .filter((i) => (i.nivel || 1) === 1)
-        .map((i) => i.numero_item);
+        .map((i) => i.numero_item.replace(/\.$/, ''));
       setExpandidos(new Set(nivel1Nums));
     } else {
       setArvore([]);
@@ -185,10 +202,11 @@ export default function QuestionamentosPage() {
 
   // ─── TOGGLE EXPANSÃO ───
   const toggleExpansao = (numeroItem: string) => {
+    const num = numeroItem.replace(/\.$/, '');
     setExpandidos((prev) => {
       const novo = new Set(prev);
-      if (novo.has(numeroItem)) novo.delete(numeroItem);
-      else novo.add(numeroItem);
+      if (novo.has(num)) novo.delete(num);
+      else novo.add(num);
       return novo;
     });
   };
@@ -397,7 +415,7 @@ export default function QuestionamentosPage() {
     const { item, filhos } = no;
     const eNivel1 = item.nivel === 1;
     const temFilhos = filhos.length > 0;
-    const estaExpandido = expandidos.has(item.numero_item);
+    const estaExpandido = expandidos.has(item.numero_item.replace(/\.$/, ''));
     const naFila = filaItens.find((f) => f.numero_item === item.numero_item);
     const foiGerado = gerados.find((g) => g.numero_item === item.numero_item);
     const estaConfigurando = itemConfigurando?.numero_item === item.numero_item;
