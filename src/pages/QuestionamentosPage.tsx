@@ -5,21 +5,53 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
   uploadEditalQ, fetchItensDetectados, adicionarItemFila, atualizarItemFila,
-  removerItemFila, gerarQuestionamento, fetchConsolidado, fetchRascunhos,
-  fetchRascunho, deletarRascunho, exportarDocx,
+  removerItemFila, gerarQuestionamento, gerarTodosQuestionamentos, fetchConsolidado,
+  fetchRascunhos, fetchRascunho, deletarRascunho, exportarDocx,
 } from "@/lib/api";
-import { Loader2, Upload, ArrowLeft, Trash2, Copy, RefreshCw, FileDown, Search, Check, Plus } from "lucide-react";
+import { Loader2, Upload, ArrowLeft, Trash2, Copy, RefreshCw, FileDown, Plus, ChevronDown, ChevronRight } from "lucide-react";
 
 type Modo = "inicio" | "upload" | "editor";
+type StatusItem = "pendente" | "em_edicao" | "gerando" | "gerado" | "erro";
+
+interface ItemDetectado {
+  numero_item: string;
+  titulo_item: string;
+  trecho_original: string;
+  nivel: number;
+}
+
+interface ItemFila {
+  id: number;
+  numero_item: string;
+  titulo_item: string;
+  trecho_original: string;
+  trecho_editado?: string;
+  objetivo?: "esclarecimento" | "alteracao";
+  tom: string;
+  perfil: string;
+  duvida?: string;
+  spec_original?: string;
+  spec_proposta?: string;
+  opc_justificativas: boolean;
+  opc_legislacao: boolean;
+  opc_relacao_itens: boolean;
+  opc_contestar: boolean;
+  output_gerado?: string;
+  status: StatusItem;
+  ordem: number;
+}
+
+interface NoArvore {
+  item: ItemDetectado;
+  filhos: NoArvore[];
+}
 
 const statusColors: Record<string, string> = {
   pendente: "bg-muted text-muted-foreground",
@@ -44,103 +76,255 @@ const statusLabels: Record<string, string> = {
 export default function QuestionamentosPage() {
   const { toast } = useToast();
 
+  // ─── ESTADOS GLOBAIS ───
   const [modo, setModo] = useState<Modo>("inicio");
   const [sessaoId, setSessaoId] = useState<number | null>(null);
   const [sessaoInfo, setSessaoInfo] = useState<any>(null);
-  const [itensDetectados, setItensDetectados] = useState<any[]>([]);
-  const [fila, setFila] = useState<any[]>([]);
-  const [itemSelecionado, setItemSelecionado] = useState<any>(null);
+  const [itensDetectados, setItensDetectados] = useState<ItemDetectado[]>([]);
+  const [arvore, setArvore] = useState<NoArvore[]>([]);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [itemConfigurando, setItemConfigurando] = useState<ItemFila | null>(null);
+  const [filaItens, setFilaItens] = useState<ItemFila[]>([]);
+  const [gerados, setGerados] = useState<ItemFila[]>([]);
   const [rascunhos, setRascunhos] = useState<any[]>([]);
-  const [abaAtiva, setAbaAtiva] = useState<"itens" | "fila">("itens");
-  const [abaPainelDir, setAbaPainelDir] = useState<"item" | "consolidado">("item");
-  const [consolidado, setConsolidado] = useState("");
-  const [gerando, setGerando] = useState(false);
-  const [buscaItens, setBuscaItens] = useState("");
-  const [addManual, setAddManual] = useState(false);
-  const [manualNumero, setManualNumero] = useState("");
-  const [manualTrecho, setManualTrecho] = useState("");
+  const [carregandoRascunhos, setCarregandoRascunhos] = useState(false);
 
-  // upload state
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
+  // upload
+  const [uploadArquivo, setUploadArquivo] = useState<File | null>(null);
+  const [processando, setProcessando] = useState(false);
+  const [erroUpload, setErroUpload] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  // form state for selected item
-  const [formObjetivo, setFormObjetivo] = useState("");
-  const [formDuvida, setFormDuvida] = useState("");
-  const [formEspecOriginal, setFormEspecOriginal] = useState("");
-  const [formEspecProposta, setFormEspecProposta] = useState("");
-  const [formTom, setFormTom] = useState("tecnico");
-  const [formPerfil, setFormPerfil] = useState("tecnico");
-  const [formTrechoEditavel, setFormTrechoEditavel] = useState(false);
-  const [formTrecho, setFormTrecho] = useState("");
-  const [opcJustificativas, setOpcJustificativas] = useState(true);
-  const [opcLegislacao, setOpcLegislacao] = useState(true);
-  const [opcRelacao, setOpcRelacao] = useState(false);
-  const [opcContestar, setOpcContestar] = useState(false);
+  // geração
+  const [gerandoItem, setGerandoItem] = useState(false);
+  const [gerandoLote, setGerandoLote] = useState(false);
+  const [progressoLote, setProgressoLote] = useState({ atual: 0, total: 0 });
+
+  // painel direito
+  const [abaPainelDir, setAbaPainelDir] = useState<"gerados" | "consolidado">("gerados");
+  const [consolidadoTexto, setConsolidadoTexto] = useState("");
 
   // export modal
-  const [exportModal, setExportModal] = useState(false);
+  const [modalExportar, setModalExportar] = useState(false);
   const [exportEmpresa, setExportEmpresa] = useState("DECATRON Tecnologia");
   const [exportResponsavel, setExportResponsavel] = useState("");
 
-  // load rascunhos on mount
+  // edição manual de trecho
+  const [itemEditandoManual, setItemEditandoManual] = useState(false);
+
+  // formulário manual
+  const [mostrarFormManual, setMostrarFormManual] = useState(false);
+  const [novoItemNumero, setNovoItemNumero] = useState("");
+  const [novoItemTrecho, setNovoItemTrecho] = useState("");
+
+  // ─── CONSTRUIR ÁRVORE ───
+  const construirArvore = useCallback((itens: ItemDetectado[]): NoArvore[] => {
+    const ordenados = [...itens].sort((a, b) => {
+      const pa = a.numero_item.replace(/\.$/, "").split(".").map(Number);
+      const pb = b.numero_item.replace(/\.$/, "").split(".").map(Number);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const diff = (pa[i] || 0) - (pb[i] || 0);
+        if (diff !== 0) return diff;
+      }
+      return 0;
+    });
+
+    const ehFilhoDirecto = (pai: string, filho: string): boolean => {
+      const paiLimpo = pai.replace(/\.$/, "");
+      const filhoLimpo = filho.replace(/\.$/, "");
+      const paiPartes = paiLimpo.split(".");
+      const filhoPartes = filhoLimpo.split(".");
+      if (filhoPartes.length !== paiPartes.length + 1) return false;
+      return paiPartes.every((p, i) => p === filhoPartes[i]);
+    };
+
+    const construirNos = (itensLocais: ItemDetectado[], nivelAtual: number): NoArvore[] => {
+      const nosDoNivel = itensLocais.filter((i) => i.nivel === nivelAtual);
+      return nosDoNivel.map((item) => ({
+        item,
+        filhos: construirNos(
+          itensLocais.filter((i) => ehFilhoDirecto(item.numero_item, i.numero_item)),
+          nivelAtual + 1
+        ),
+      }));
+    };
+
+    if (ordenados.length === 0) return [];
+    const nivelMinimo = Math.min(...ordenados.map((i) => i.nivel));
+    return construirNos(ordenados, nivelMinimo);
+  }, []);
+
+  useEffect(() => {
+    if (itensDetectados.length > 0) {
+      setArvore(construirArvore(itensDetectados));
+      const nivel1 = itensDetectados.filter((i) => i.nivel === 1).map((i) => i.numero_item);
+      setExpandidos(new Set(nivel1));
+    } else {
+      setArvore([]);
+    }
+  }, [itensDetectados, construirArvore]);
+
+  // ─── CARREGAR RASCUNHOS ───
   useEffect(() => {
     if (modo === "inicio") {
+      setCarregandoRascunhos(true);
       fetchRascunhos()
         .then((r) => {
           const list = Array.isArray(r?.data) ? r.data : Array.isArray(r?.data?.rascunhos) ? r.data.rascunhos : [];
           setRascunhos(list.filter(Boolean));
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setCarregandoRascunhos(false));
     }
   }, [modo]);
 
-  // load consolidado
-  useEffect(() => {
-    if (abaPainelDir === "consolidado" && sessaoId) {
-      fetchConsolidado(sessaoId)
-        .then((r) => setConsolidado(r.data?.texto ?? ""))
-        .catch(() => setConsolidado("Erro ao carregar consolidado."));
-    }
-  }, [abaPainelDir, sessaoId]);
+  // ─── TOGGLE EXPANSÃO ───
+  const toggleExpansao = (numeroItem: string) => {
+    setExpandidos((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(numeroItem)) novo.delete(numeroItem);
+      else novo.add(numeroItem);
+      return novo;
+    });
+  };
 
-  // populate form when item selected
-  useEffect(() => {
-    if (itemSelecionado) {
-      setFormObjetivo(itemSelecionado.objetivo || "");
-      setFormDuvida(itemSelecionado.duvida || "");
-      setFormEspecOriginal(itemSelecionado.especificacao_original || itemSelecionado.trecho_original || "");
-      setFormEspecProposta(itemSelecionado.especificacao_proposta || "");
-      setFormTom(itemSelecionado.tom || "tecnico");
-      setFormPerfil(itemSelecionado.perfil || "tecnico");
-      setFormTrecho(itemSelecionado.trecho_original || "");
-      setFormTrechoEditavel(false);
-      setOpcJustificativas(itemSelecionado.opc_justificativas ?? true);
-      setOpcLegislacao(itemSelecionado.opc_legislacao ?? true);
-      setOpcRelacao(itemSelecionado.opc_relacao_itens ?? false);
-      setOpcContestar(itemSelecionado.opc_contestar ?? false);
+  // ─── ABRIR CONFIGURADOR ───
+  const abrirConfigurador = (item: ItemDetectado) => {
+    const naFila = filaItens.find((f) => f.numero_item === item.numero_item);
+    if (naFila) {
+      setItemConfigurando(naFila);
+      return;
     }
-  }, [itemSelecionado]);
+    const naGerados = gerados.find((g) => g.numero_item === item.numero_item);
+    if (naGerados) {
+      setItemConfigurando(naGerados);
+      return;
+    }
+    setItemConfigurando({
+      id: 0,
+      numero_item: item.numero_item,
+      titulo_item: item.titulo_item,
+      trecho_original: item.trecho_original,
+      objetivo: undefined,
+      tom: "tecnico",
+      perfil: "tecnico",
+      opc_justificativas: true,
+      opc_legislacao: true,
+      opc_relacao_itens: false,
+      opc_contestar: false,
+      status: "pendente",
+      ordem: filaItens.length,
+    });
+    setItemEditandoManual(false);
+  };
 
-  const handleUpload = async () => {
-    if (!arquivo) return;
-    setUploading(true);
-    setUploadError("");
+  // ─── ADICIONAR À FILA ───
+  const adicionarAFila = async () => {
+    if (!itemConfigurando || !sessaoId) return;
     try {
-      const res = await uploadEditalQ(arquivo);
+      const res = await adicionarItemFila(sessaoId, {
+        ...itemConfigurando,
+        status: "pendente",
+      });
+      const itemSalvo: ItemFila = { ...itemConfigurando, id: res.data?.id ?? res.id, status: "pendente" };
+      setFilaItens((prev) => [...prev.filter((f) => f.numero_item !== itemSalvo.numero_item), itemSalvo]);
+      setItemConfigurando(itemSalvo);
+      toast({ title: "Item adicionado à fila" });
+    } catch (e) {
+      toast({ title: "Erro ao adicionar à fila", variant: "destructive" });
+    }
+  };
+
+  // ─── GERAR AGORA ───
+  const gerarAgora = async () => {
+    if (!itemConfigurando || !sessaoId) return;
+    if (!itemConfigurando.objetivo) {
+      toast({ title: "Selecione o objetivo (Esclarecimento ou Alteração)", variant: "destructive" });
+      return;
+    }
+    if (itemConfigurando.objetivo === "esclarecimento" && !itemConfigurando.duvida) {
+      toast({ title: "Preencha 'O que está gerando dúvida?'", variant: "destructive" });
+      return;
+    }
+    if (itemConfigurando.objetivo === "alteracao" && !itemConfigurando.spec_proposta) {
+      toast({ title: "Preencha a Especificação Proposta", variant: "destructive" });
+      return;
+    }
+
+    setGerandoItem(true);
+    try {
+      let itemId = itemConfigurando.id;
+      if (itemId === 0) {
+        const resAdd = await adicionarItemFila(sessaoId, itemConfigurando);
+        itemId = resAdd.data?.id ?? resAdd.id;
+        setItemConfigurando((prev) => (prev ? { ...prev, id: itemId } : prev));
+      } else {
+        await atualizarItemFila(sessaoId, itemId, itemConfigurando);
+      }
+      setItemConfigurando((prev) => (prev ? { ...prev, status: "gerando" } : prev));
+      const res = await gerarQuestionamento(sessaoId, itemId);
+      const itemGerado: ItemFila = {
+        ...itemConfigurando,
+        id: itemId,
+        output_gerado: res.data?.output ?? res.output ?? "",
+        status: "gerado",
+      };
+      setItemConfigurando(itemGerado);
+      setGerados((prev) => [...prev.filter((g) => g.numero_item !== itemGerado.numero_item), itemGerado]);
+      setFilaItens((prev) => prev.filter((f) => f.numero_item !== itemGerado.numero_item));
+      setAbaPainelDir("gerados");
+    } catch {
+      setItemConfigurando((prev) => (prev ? { ...prev, status: "erro" } : prev));
+      toast({ title: "Erro ao gerar questionamento", variant: "destructive" });
+    }
+    setGerandoItem(false);
+  };
+
+  // ─── GERAR TODOS ───
+  const gerarTodos = async () => {
+    if (!sessaoId || filaItens.length === 0) return;
+    setGerandoLote(true);
+    setProgressoLote({ atual: 0, total: filaItens.length });
+
+    for (let i = 0; i < filaItens.length; i++) {
+      const item = filaItens[i];
+      setProgressoLote({ atual: i + 1, total: filaItens.length });
+      setFilaItens((prev) => prev.map((f) => (f.id === item.id ? { ...f, status: "gerando" } : f)));
+
+      try {
+        await atualizarItemFila(sessaoId, item.id, item);
+        const res = await gerarQuestionamento(sessaoId, item.id);
+        const itemGerado: ItemFila = { ...item, output_gerado: res.data?.output ?? res.output ?? "", status: "gerado" };
+        setGerados((prev) => [...prev.filter((g) => g.numero_item !== itemGerado.numero_item), itemGerado]);
+        setFilaItens((prev) => prev.map((f) => (f.id === item.id ? itemGerado : f)));
+      } catch {
+        setFilaItens((prev) => prev.map((f) => (f.id === item.id ? { ...f, status: "erro" } : f)));
+      }
+    }
+
+    setGerandoLote(false);
+    setAbaPainelDir("gerados");
+  };
+
+  // ─── UPLOAD ───
+  const handleUpload = async () => {
+    if (!uploadArquivo) return;
+    setProcessando(true);
+    setErroUpload("");
+    try {
+      const res = await uploadEditalQ(uploadArquivo);
       const sid = res.data?.sessao_id;
       setSessaoId(sid);
       setSessaoInfo(res.data);
       setItensDetectados(Array.isArray(res.data?.itens) ? res.data.itens : []);
-      setFila(Array.isArray(res.data?.fila) ? res.data.fila : []);
+      setFilaItens([]);
+      setGerados([]);
       setModo("editor");
     } catch (e: any) {
-      setUploadError(e.message || "Erro ao processar edital");
+      setErroUpload(e.message || "Erro ao processar edital");
     }
-    setUploading(false);
+    setProcessando(false);
   };
 
   const carregarRascunho = async (id: number) => {
@@ -149,8 +333,9 @@ export default function QuestionamentosPage() {
       const d = res.data;
       setSessaoId(d.sessao?.id ?? d.sessao_id ?? id);
       setSessaoInfo(d.sessao ?? d);
-      setItensDetectados(Array.isArray(d.itens) ? d.itens : []);
-      setFila(Array.isArray(d.itens) ? d.itens : []);
+      setItensDetectados([]);
+      setFilaItens(Array.isArray(d.itens) ? d.itens : []);
+      setGerados((Array.isArray(d.itens) ? d.itens : []).filter((i: any) => i?.status === "gerado"));
       setModo("editor");
     } catch {
       toast({ title: "Erro ao carregar rascunho", variant: "destructive" });
@@ -167,113 +352,111 @@ export default function QuestionamentosPage() {
     }
   };
 
-  const adicionarNaFila = async (item: any) => {
-    if (!sessaoId) return;
-    try {
-      const res = await adicionarItemFila(sessaoId, {
-        numero_item: item.numero_item,
-        titulo_item: item.titulo_item,
-        trecho_original: item.trecho_original,
-        status: "pendente",
-      });
-      const novo = res.data;
-      setFila((prev) => [...prev, novo]);
-      toast({ title: "Item adicionado à fila" });
-    } catch {
-      toast({ title: "Erro ao adicionar item", variant: "destructive" });
-    }
-  };
-
-  const removerDaFila = async (itemId: number) => {
-    if (!sessaoId) return;
-    try {
-      await removerItemFila(sessaoId, itemId);
-      setFila((prev) => prev.filter((i) => i.id !== itemId));
-      if (itemSelecionado?.id === itemId) setItemSelecionado(null);
-      toast({ title: "Item removido" });
-    } catch {
-      toast({ title: "Erro ao remover", variant: "destructive" });
-    }
-  };
-
-  const salvarConfig = async () => {
-    if (!sessaoId || !itemSelecionado) return;
-    const payload = {
-      objetivo: formObjetivo,
-      duvida: formDuvida,
-      especificacao_original: formEspecOriginal,
-      especificacao_proposta: formEspecProposta,
-      tom: formTom,
-      perfil: formPerfil,
-      trecho_original: formTrecho,
-      opc_justificativas: opcJustificativas,
-      opc_legislacao: opcLegislacao,
-      opc_relacao_itens: opcRelacao,
-      opc_contestar: opcContestar,
-      status: "em_andamento",
-    };
-    try {
-      await atualizarItemFila(sessaoId, itemSelecionado.id, payload);
-      setFila((prev) => prev.map((i) => (i.id === itemSelecionado.id ? { ...i, ...payload } : i)));
-      setItemSelecionado((prev: any) => ({ ...prev, ...payload }));
-      toast({ title: "Configuração salva" });
-    } catch {
-      toast({ title: "Erro ao salvar", variant: "destructive" });
-    }
-  };
-
-  const gerarItem = async (itemId: number) => {
-    if (!sessaoId) return;
-    setGerando(true);
-    setFila((prev) => prev.map((i) => (i.id === itemId ? { ...i, status: "gerando" } : i)));
-    try {
-      const res = await gerarQuestionamento(sessaoId, itemId);
-      const output = res.data?.output ?? "";
-      setFila((prev) => prev.map((i) => (i.id === itemId ? { ...i, output_gerado: output, status: "gerado" } : i)));
-      if (itemSelecionado?.id === itemId) {
-        setItemSelecionado((prev: any) => ({ ...prev, output_gerado: output, status: "gerado" }));
-      }
-    } catch {
-      setFila((prev) => prev.map((i) => (i.id === itemId ? { ...i, status: "erro" } : i)));
-    }
-    setGerando(false);
-  };
-
   const copiarTexto = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado!" });
   };
-
-  const itemNaFila = useCallback(
-    (numeroItem: string) => fila.some((f) => f.numero_item === numeroItem),
-    [fila]
-  );
-
-  const safeItens = Array.isArray(itensDetectados) ? itensDetectados : [];
-  const safeFila = Array.isArray(fila) ? fila : [];
-
-  const itensFiltrados = safeItens.filter(
-    (i) =>
-      !buscaItens ||
-      i.titulo_item?.toLowerCase().includes(buscaItens.toLowerCase()) ||
-      i.numero_item?.toLowerCase().includes(buscaItens.toLowerCase())
-  );
-
-  const qtdGerados = safeFila.filter((i) => i?.status === "gerado").length;
 
   const voltar = () => {
     setModo("inicio");
     setSessaoId(null);
     setSessaoInfo(null);
     setItensDetectados([]);
-    setFila([]);
-    setItemSelecionado(null);
-    setConsolidado("");
-    setArquivo(null);
+    setFilaItens([]);
+    setGerados([]);
+    setItemConfigurando(null);
+    setConsolidadoTexto("");
+    setUploadArquivo(null);
   };
 
-  // ─── RENDER ────────────────────────────────────────────
+  // ─── COMPONENTE ÁRVORE ───
+  const ItemArvore = ({ no, profundidade = 0 }: { no: NoArvore; profundidade?: number }) => {
+    const { item, filhos } = no;
+    const eNivel1 = item.nivel === 1;
+    const temFilhos = filhos.length > 0;
+    const estaExpandido = expandidos.has(item.numero_item);
+    const naFila = filaItens.find((f) => f.numero_item === item.numero_item);
+    const foiGerado = gerados.find((g) => g.numero_item === item.numero_item);
+    const estaConfigurando = itemConfigurando?.numero_item === item.numero_item;
 
+    const indentacao = profundidade * 16;
+
+    const corBadge = () => {
+      if (foiGerado) return "bg-green-100 text-green-700 border-green-200";
+      if (naFila) return "bg-yellow-100 text-yellow-700 border-yellow-200";
+      if (eNivel1) return "bg-slate-100 text-slate-600 border-slate-200";
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    };
+
+    return (
+      <div>
+        <div
+          className={`group flex items-center gap-1.5 py-1 pr-2 rounded-md cursor-pointer transition-colors ${
+            estaConfigurando ? "bg-primary/10 border border-primary/30" : "hover:bg-accent"
+          }`}
+          style={{ paddingLeft: `${4 + indentacao}px` }}
+          onClick={() => !eNivel1 && abrirConfigurador(item)}
+        >
+          {/* Expand/collapse */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (temFilhos) toggleExpansao(item.numero_item);
+            }}
+            className={`w-4 h-4 flex items-center justify-center flex-shrink-0 text-muted-foreground ${
+              !temFilhos ? "invisible" : "hover:text-foreground"
+            }`}
+          >
+            {estaExpandido ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          </button>
+
+          {/* Badge número */}
+          <span className={`text-[10px] px-1.5 py-0.5 rounded border flex-shrink-0 font-mono ${corBadge()}`}>
+            {item.numero_item.replace(/\.$/, "")}
+          </span>
+
+          {/* Título */}
+          <span
+            className={`flex-1 truncate ${
+              eNivel1 ? "text-xs font-semibold text-foreground" : item.nivel >= 4 ? "text-[11px] text-muted-foreground" : "text-xs text-foreground"
+            }`}
+          >
+            {item.titulo_item}
+          </span>
+
+          {/* Status */}
+          {foiGerado && <span className="text-[10px] flex-shrink-0">✅</span>}
+          {naFila && !foiGerado && (
+            <span className="text-[10px] flex-shrink-0">{naFila.status === "gerando" ? "🔄" : "⏳"}</span>
+          )}
+
+          {/* Botão Questionar — nível 2+ */}
+          {!eNivel1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                abrirConfigurador(item);
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded hover:bg-primary/90"
+            >
+              Questionar
+            </button>
+          )}
+        </div>
+
+        {/* Filhos recursivos */}
+        {estaExpandido && filhos.length > 0 && (
+          <div>
+            {filhos.map((filho) => (
+              <ItemArvore key={filho.item.numero_item} no={filho} profundidade={profundidade + 1} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── RENDER ───
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -342,7 +525,7 @@ export default function QuestionamentosPage() {
               e.preventDefault();
               setDragOver(false);
               const f = e.dataTransfer.files[0];
-              if (f) setArquivo(f);
+              if (f) setUploadArquivo(f);
             }}
             className={`mt-6 flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-10 transition-colors ${
               dragOver ? "border-primary bg-primary/5" : "border-border"
@@ -358,369 +541,582 @@ export default function QuestionamentosPage() {
               type="file"
               accept=".pdf,.docx,.doc"
               className="hidden"
-              onChange={(e) => { if (e.target.files?.[0]) setArquivo(e.target.files[0]); }}
+              onChange={(e) => { if (e.target.files?.[0]) setUploadArquivo(e.target.files[0]); }}
             />
           </div>
 
-          {arquivo && (
+          {uploadArquivo && (
             <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-card p-3">
-              <span className="text-sm font-medium text-foreground">{arquivo.name}</span>
-              <Button onClick={handleUpload} disabled={uploading}>
-                {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Extraindo texto e detectando itens…</> : "Processar Edital"}
+              <span className="text-sm font-medium text-foreground">{uploadArquivo.name}</span>
+              <Button onClick={handleUpload} disabled={processando}>
+                {processando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Extraindo texto e detectando itens…</> : "Processar Edital"}
               </Button>
             </div>
           )}
-          {uploadError && <p className="mt-3 text-sm text-destructive">{uploadError}</p>}
+          {erroUpload && <p className="mt-3 text-sm text-destructive">{erroUpload}</p>}
         </main>
       )}
 
       {/* ══════ MODO EDITOR ══════ */}
       {modo === "editor" && (
         <div className="flex h-[calc(100vh-64px)] flex-col">
-          {/* header */}
+          {/* Header */}
           <div className="flex items-center gap-3 border-b border-border bg-card px-4 py-2">
-            <Button variant="ghost" size="sm" onClick={voltar}><ArrowLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={voltar}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <span className="truncate text-sm font-medium text-foreground">
               {(sessaoInfo?.nome_arquivo ?? "Edital").slice(0, 50)}
             </span>
             <Badge className={statusColors[sessaoInfo?.status] ?? statusColors.rascunho} variant="outline">
               {statusLabels[sessaoInfo?.status] ?? "Rascunho"}
             </Badge>
-            <div className="ml-auto">
-              <Button variant="outline" size="sm" onClick={salvarConfig}>💾 Salvar</Button>
-            </div>
+            <div className="ml-auto" />
           </div>
 
           <div className="flex flex-1 overflow-hidden">
             {/* ── PAINEL ESQUERDO ── */}
-            <aside className="flex w-[300px] shrink-0 flex-col border-r border-border bg-card">
-              <Tabs value={abaAtiva} onValueChange={(v) => setAbaAtiva(v as any)} className="flex flex-1 flex-col">
-                <TabsList className="mx-2 mt-2 w-auto">
-                  <TabsTrigger value="itens" className="flex-1 text-xs">Itens Detectados</TabsTrigger>
-                  <TabsTrigger value="fila" className="flex-1 text-xs">Fila ({fila.length})</TabsTrigger>
-                </TabsList>
+            <aside className="flex w-[280px] shrink-0 flex-col border-r border-border bg-card">
+              {/* Cabeçalho */}
+              <div className="px-3 pt-3 pb-2">
+                <p className="text-[11px] text-muted-foreground">
+                  {itensDetectados.length > 0
+                    ? `${itensDetectados.length} itens detectados • ${Math.max(...itensDetectados.map((i) => i.nivel), 0)} níveis`
+                    : filaItens.length > 0
+                    ? `${filaItens.length} itens na fila`
+                    : "Nenhum item"}
+                </p>
+              </div>
 
-                <TabsContent value="itens" className="flex flex-1 flex-col overflow-hidden px-2 pb-2">
-                  {/* Counter */}
-                  {safeItens.length > 0 && (() => {
-                    const niveis = new Set(safeItens.map(i => i.nivel ?? 1));
-                    return (
-                      <p className="mb-1 mt-1 text-[10px] text-muted-foreground">
-                        {safeItens.length} itens • {niveis.size} {niveis.size === 1 ? "nível" : "níveis"}
-                      </p>
-                    );
-                  })()}
-                  <div className="relative mb-2">
-                    <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar item…"
-                      value={buscaItens}
-                      onChange={(e) => setBuscaItens(e.target.value)}
-                      className="h-8 pl-7 text-xs"
-                    />
-                  </div>
-                  <ScrollArea className="flex-1">
-                    <div className="space-y-0.5 pr-2">
-                      {itensFiltrados.map((it) => {
-                        const naFila = itemNaFila(it.numero_item);
-                        const nivel = it.nivel ?? 1;
-                        const indent = nivel <= 1 ? 0 : nivel === 2 ? 12 : nivel === 3 ? 24 : 12 * Math.min(nivel - 1, 5);
-                        const badgeClass = nivel <= 1
-                          ? "bg-blue-800 text-white"
-                          : nivel === 2
-                          ? "bg-blue-500 text-white"
-                          : nivel === 3
-                          ? "bg-blue-300 text-blue-900"
-                          : "bg-slate-300 text-slate-700";
-                        const textClass = nivel <= 1 ? "font-semibold text-xs" : nivel >= 4 ? "text-[11px] text-muted-foreground" : "text-xs";
-                        return (
-                          <button
-                            key={it.numero_item}
-                            onClick={() => {
-                              if (naFila) {
-                                const f = fila.find((fi) => fi.numero_item === it.numero_item);
-                                if (f) { setItemSelecionado(f); setAbaAtiva("fila"); }
-                              } else {
-                                adicionarNaFila(it);
-                              }
-                            }}
-                            style={{ paddingLeft: `${8 + indent}px` }}
-                            className="flex w-full items-center gap-2 rounded-md py-1.5 pr-2 text-left hover:bg-accent"
-                          >
-                            <Badge variant="secondary" className={`shrink-0 text-[10px] border-0 ${badgeClass}`}>{it.numero_item}</Badge>
-                            <span className={`flex-1 truncate ${textClass}`}>{(it.titulo_item ?? "").slice(0, 60)}</span>
-                            {naFila && <Check className="h-3.5 w-3.5 shrink-0 text-green-600" />}
-                          </button>
-                        );
-                      })}
-                      {itensFiltrados.length === 0 && (
-                        <p className="py-4 text-center text-xs text-muted-foreground">Nenhum item encontrado</p>
-                      )}
-                    </div>
-                  </ScrollArea>
+              {/* Árvore */}
+              <ScrollArea className="flex-1 px-1">
+                <div className="pb-2">
+                  {arvore.map((no) => (
+                    <ItemArvore key={no.item.numero_item} no={no} />
+                  ))}
 
-                  {/* Add manual item */}
-                  <div className="border-t border-border pt-2 mt-1">
-                    {!addManual ? (
-                      <Button variant="outline" size="sm" className="w-full gap-1 text-xs" onClick={() => setAddManual(true)}>
-                        <Plus className="h-3 w-3" /> Adicionar item manualmente
-                      </Button>
+                  {arvore.length === 0 && itensDetectados.length === 0 && (
+                    <p className="py-6 text-center text-xs text-muted-foreground">Nenhum item detectado</p>
+                  )}
+
+                  {/* Botão adicionar manualmente */}
+                  <div className="mt-2 px-2">
+                    {!mostrarFormManual ? (
+                      <button
+                        onClick={() => setMostrarFormManual(true)}
+                        className="w-full text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded p-2 hover:border-primary/40 transition-colors"
+                      >
+                        ➕ Adicionar item manualmente
+                      </button>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-2 border border-border rounded p-2">
                         <Input
-                          placeholder="Número do item (ex: 3.2.1.4.)"
-                          value={manualNumero}
-                          onChange={(e) => setManualNumero(e.target.value)}
-                          className="h-8 text-xs"
+                          value={novoItemNumero}
+                          onChange={(e) => setNovoItemNumero(e.target.value)}
+                          placeholder="Número (ex: 3.2.1.4)"
+                          className="h-7 text-xs"
                         />
                         <Textarea
-                          placeholder="Trecho do edital"
-                          value={manualTrecho}
-                          onChange={(e) => setManualTrecho(e.target.value)}
-                          className="min-h-[60px] text-xs"
+                          value={novoItemTrecho}
+                          onChange={(e) => setNovoItemTrecho(e.target.value)}
+                          placeholder="Cole o trecho do edital aqui..."
+                          rows={3}
+                          className="text-xs min-h-[60px] resize-none"
                         />
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <Button
                             size="sm"
-                            className="flex-1 text-xs"
-                            disabled={!manualNumero.trim() || !sessaoId}
-                            onClick={async () => {
-                              await adicionarNaFila({
-                                numero_item: manualNumero.trim(),
-                                trecho_original: manualTrecho.trim(),
-                                titulo_item: manualNumero.trim(),
-                                objetivo: null,
+                            className="flex-1 text-xs h-7"
+                            disabled={!novoItemNumero.trim() || !novoItemTrecho.trim()}
+                            onClick={() => {
+                              abrirConfigurador({
+                                numero_item: novoItemNumero.trim(),
+                                titulo_item: novoItemNumero.trim(),
+                                trecho_original: novoItemTrecho.trim(),
+                                nivel: 2,
                               });
-                              setManualNumero("");
-                              setManualTrecho("");
-                              setAddManual(false);
+                              setMostrarFormManual(false);
+                              setNovoItemNumero("");
+                              setNovoItemTrecho("");
                             }}
                           >
-                            Adicionar à fila
+                            Adicionar
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-xs" onClick={() => { setAddManual(false); setManualNumero(""); setManualTrecho(""); }}>
-                            Cancelar
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7"
+                            onClick={() => {
+                              setMostrarFormManual(false);
+                              setNovoItemNumero("");
+                              setNovoItemTrecho("");
+                            }}
+                          >
+                            ✕
                           </Button>
                         </div>
                       </div>
                     )}
                   </div>
-                </TabsContent>
+                </div>
+              </ScrollArea>
 
-                <TabsContent value="fila" className="flex flex-1 flex-col overflow-hidden px-2 pb-2">
-                  <ScrollArea className="flex-1">
-                    <div className="space-y-1 pr-2">
-                      {fila.map((fi) => (
-                        <div
-                          key={fi.id}
-                          onClick={() => setItemSelecionado(fi)}
-                          className={`group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-accent ${
-                            itemSelecionado?.id === fi.id ? "border border-primary bg-primary/5" : ""
-                          }`}
-                        >
-                          <Badge variant="outline" className={`shrink-0 text-[10px] ${statusColors[fi.status] ?? ""}`}>
-                            {statusLabels[fi.status] ?? fi.status}
-                          </Badge>
-                          <span className="flex-1 truncate">{fi.numero_item} — {(fi.titulo_item ?? "").slice(0, 40)}</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); removerDaFila(fi.id); }}
-                            className="hidden shrink-0 text-muted-foreground hover:text-destructive group-hover:inline-flex"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {fila.length === 0 && (
-                        <p className="py-4 text-center text-xs text-muted-foreground">Nenhum item na fila</p>
-                      )}
+              {/* Seção Fila */}
+              {filaItens.length > 0 && (
+                <div className="border-t border-border p-3 space-y-2 max-h-48 overflow-y-auto">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">Fila ({filaItens.length})</span>
+                    {!gerandoLote ? (
+                      <Button size="sm" className="h-6 text-[11px] px-2 gap-1" onClick={gerarTodos}>
+                        🚀 Gerar Todos
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-primary animate-pulse">
+                        {progressoLote.atual}/{progressoLote.total}…
+                      </span>
+                    )}
+                  </div>
+
+                  {gerandoLote && (
+                    <Progress value={(progressoLote.atual / progressoLote.total) * 100} className="h-1.5" />
+                  )}
+
+                  {filaItens.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 text-xs">
+                      <span
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          item.status === "gerado"
+                            ? "bg-green-500"
+                            : item.status === "gerando"
+                            ? "bg-primary animate-pulse"
+                            : item.status === "erro"
+                            ? "bg-destructive"
+                            : "bg-yellow-400"
+                        }`}
+                      />
+                      <span className="truncate flex-1 text-muted-foreground">
+                        {item.numero_item} {item.titulo_item}
+                      </span>
+                      <button
+                        onClick={() =>
+                          sessaoId &&
+                          removerItemFila(sessaoId, item.id).then(() =>
+                            setFilaItens((prev) => prev.filter((f) => f.id !== item.id))
+                          )
+                        }
+                        className="text-muted-foreground hover:text-destructive flex-shrink-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </div>
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
+                  ))}
+                </div>
+              )}
             </aside>
 
             {/* ── PAINEL CENTRAL ── */}
-            <main className="flex-1 overflow-y-auto p-4">
-              {!itemSelecionado ? (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                  Selecione um item da fila para configurar
+            <main className="flex-1 overflow-y-auto p-6">
+              {!itemConfigurando ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground gap-3">
+                  <div className="text-4xl">📋</div>
+                  <p className="text-lg font-medium">Selecione um item para questionar</p>
+                  <p className="text-sm">
+                    Navegue pela árvore à esquerda e clique em "Questionar" em qualquer item de nível 2 ou mais
+                  </p>
                 </div>
               ) : (
-                <div className="mx-auto max-w-2xl space-y-5">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {itemSelecionado.numero_item} — {itemSelecionado.titulo_item}
-                  </h2>
+                <div className="max-w-2xl space-y-5">
+                  {/* Header do item */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-sm bg-primary/10 text-primary px-2 py-0.5 rounded">
+                        {itemConfigurando.numero_item.replace(/\.$/, "")}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          itemConfigurando.status === "gerado"
+                            ? "bg-green-100 text-green-700"
+                            : itemConfigurando.status === "gerando"
+                            ? "bg-blue-100 text-blue-700"
+                            : itemConfigurando.status === "erro"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {itemConfigurando.status === "gerado"
+                          ? "✅ Gerado"
+                          : itemConfigurando.status === "gerando"
+                          ? "🔄 Gerando..."
+                          : itemConfigurando.status === "erro"
+                          ? "❌ Erro"
+                          : "⚪ Pendente"}
+                      </span>
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">{itemConfigurando.titulo_item}</h2>
+                  </div>
 
                   {/* Trecho */}
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Trecho do item</label>
+                    <label className="text-sm font-medium mb-1 block text-foreground">Trecho do item</label>
                     <Textarea
-                      value={formTrecho}
-                      onChange={(e) => setFormTrecho(e.target.value)}
-                      disabled={!formTrechoEditavel}
-                      className="text-xs"
+                      value={
+                        itemEditandoManual
+                          ? itemConfigurando.trecho_editado || itemConfigurando.trecho_original
+                          : itemConfigurando.trecho_original
+                      }
+                      onChange={(e) =>
+                        setItemConfigurando((prev) => (prev ? { ...prev, trecho_editado: e.target.value } : prev))
+                      }
+                      disabled={!itemEditandoManual}
                       rows={4}
+                      className="text-sm resize-none"
                     />
-                    <Button variant="link" size="sm" className="mt-1 h-auto p-0 text-xs" onClick={() => setFormTrechoEditavel(!formTrechoEditavel)}>
-                      {formTrechoEditavel ? "🔒 Travar edição" : "✏️ Habilitar edição manual"}
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs mt-1"
+                      onClick={() => setItemEditandoManual((prev) => !prev)}
+                    >
+                      {itemEditandoManual ? "🔒 Travar edição" : "✏️ Habilitar edição manual"}
                     </Button>
                   </div>
 
                   {/* Objetivo */}
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-muted-foreground">Objetivo *</label>
-                    <RadioGroup value={formObjetivo} onValueChange={setFormObjetivo} className="flex gap-4">
-                      <label className="flex items-center gap-2 text-sm">
-                        <RadioGroupItem value="esclarecimento" /> 📋 Pedir Esclarecimento
-                      </label>
-                      <label className="flex items-center gap-2 text-sm">
-                        <RadioGroupItem value="alteracao" /> ✏️ Sugerir Alteração
-                      </label>
-                    </RadioGroup>
-                  </div>
-
-                  {formObjetivo === "esclarecimento" && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-muted-foreground">O que está gerando dúvida? *</label>
-                      <Textarea value={formDuvida} onChange={(e) => setFormDuvida(e.target.value)} className="text-xs" rows={3} />
-                    </div>
-                  )}
-
-                  {formObjetivo === "alteracao" && (
-                    <>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">Especificação Original</label>
-                        <Input value={formEspecOriginal} onChange={(e) => setFormEspecOriginal(e.target.value)} className="text-xs" />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">Especificação Proposta *</label>
-                        <Textarea value={formEspecProposta} onChange={(e) => setFormEspecProposta(e.target.value)} className="text-xs" rows={3} />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Tom */}
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Tom</label>
-                    <Select value={formTom} onValueChange={setFormTom}>
-                      <SelectTrigger className="w-full text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="tecnico">🔧 Técnico-objetivo</SelectItem>
-                        <SelectItem value="juridico">⚖️ Jurídico-formal</SelectItem>
-                        <SelectItem value="administrativo">📋 Administrativo-neutro</SelectItem>
-                        <SelectItem value="assertivo">🎯 Assertivo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Perfil */}
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Perfil</label>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant={formPerfil === "tecnico" ? "default" : "outline"} onClick={() => setFormPerfil("tecnico")}>Técnico</Button>
-                      <Button size="sm" variant={formPerfil === "administrativo" ? "default" : "outline"} onClick={() => setFormPerfil("administrativo")}>Administrativo</Button>
-                    </div>
-                  </div>
-
-                  {/* Opções avançadas */}
-                  <div>
-                    <label className="mb-2 block text-xs font-medium text-muted-foreground">Opções avançadas</label>
-                    <div className="space-y-2">
+                    <label className="text-sm font-medium mb-2 block text-foreground">Objetivo *</label>
+                    <div className="flex gap-4">
                       {[
-                        { id: "just", label: "Buscar justificativas plausíveis", checked: opcJustificativas, set: setOpcJustificativas },
-                        { id: "leg", label: "Citar legislação e acórdãos TCU", checked: opcLegislacao, set: setOpcLegislacao },
-                        { id: "rel", label: "Verificar relação com outros itens", checked: opcRelacao, set: setOpcRelacao },
-                        { id: "cont", label: "Contestar especificação restritiva", checked: opcContestar, set: setOpcContestar },
-                      ].map((o) => (
-                        <label key={o.id} className="flex items-center gap-2 text-xs">
-                          <Checkbox checked={o.checked} onCheckedChange={(v) => o.set(!!v)} /> {o.label}
+                        { value: "esclarecimento" as const, label: "📋 Pedir Esclarecimento" },
+                        { value: "alteracao" as const, label: "✏️ Sugerir Alteração" },
+                      ].map((op) => (
+                        <label key={op.value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="objetivo"
+                            value={op.value}
+                            checked={itemConfigurando.objetivo === op.value}
+                            onChange={() =>
+                              setItemConfigurando((prev) => (prev ? { ...prev, objetivo: op.value } : prev))
+                            }
+                            className="accent-primary"
+                          />
+                          <span className="text-sm">{op.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-3 pt-2">
-                    <Button onClick={() => gerarItem(itemSelecionado.id)} disabled={gerando || !formObjetivo}>
-                      {gerando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando com IA… (15-30s)</> : "🤖 Gerar Questionamento"}
-                    </Button>
-                    <Button variant="outline" onClick={salvarConfig}>💾 Salvar configuração</Button>
+                  {/* Dúvida — esclarecimento */}
+                  {itemConfigurando.objetivo === "esclarecimento" && (
+                    <div>
+                      <label className="text-sm font-medium mb-1 block text-foreground">
+                        O que está gerando dúvida? *
+                      </label>
+                      <Textarea
+                        value={itemConfigurando.duvida || ""}
+                        onChange={(e) =>
+                          setItemConfigurando((prev) => (prev ? { ...prev, duvida: e.target.value } : prev))
+                        }
+                        rows={3}
+                        placeholder="Descreva o que gera dúvida neste item..."
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {/* Especificações — alteração */}
+                  {itemConfigurando.objetivo === "alteracao" && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium mb-1 block text-foreground">Especificação Original</label>
+                        <Textarea
+                          value={itemConfigurando.spec_original || itemConfigurando.trecho_original}
+                          onChange={(e) =>
+                            setItemConfigurando((prev) => (prev ? { ...prev, spec_original: e.target.value } : prev))
+                          }
+                          rows={3}
+                          className="text-sm resize-none bg-muted"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-1 block text-foreground">
+                          Especificação Proposta *
+                        </label>
+                        <Textarea
+                          value={itemConfigurando.spec_proposta || ""}
+                          onChange={(e) =>
+                            setItemConfigurando((prev) => (prev ? { ...prev, spec_proposta: e.target.value } : prev))
+                          }
+                          rows={3}
+                          placeholder="Descreva a alteração que você propõe..."
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tom */}
+                  <div>
+                    <label className="text-sm font-medium mb-1 block text-foreground">Tom</label>
+                    <select
+                      value={itemConfigurando.tom}
+                      onChange={(e) =>
+                        setItemConfigurando((prev) => (prev ? { ...prev, tom: e.target.value } : prev))
+                      }
+                      className="w-full text-sm border border-input rounded-md p-2 bg-background"
+                    >
+                      <option value="tecnico">🔧 Técnico-objetivo</option>
+                      <option value="juridico">⚖️ Jurídico-formal</option>
+                      <option value="administrativo">📋 Administrativo-neutro</option>
+                      <option value="assertivo">🎯 Assertivo</option>
+                    </select>
                   </div>
+
+                  {/* Perfil */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-foreground">Perfil</label>
+                    <div className="flex gap-2">
+                      {(["tecnico", "administrativo"] as const).map((p) => (
+                        <Button
+                          key={p}
+                          size="sm"
+                          variant={itemConfigurando.perfil === p ? "default" : "outline"}
+                          onClick={() =>
+                            setItemConfigurando((prev) => (prev ? { ...prev, perfil: p } : prev))
+                          }
+                        >
+                          {p === "tecnico" ? "Técnico" : "Administrativo"}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Opções avançadas */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-foreground">Opções avançadas</label>
+                    <div className="space-y-2">
+                      {[
+                        { key: "opc_justificativas" as const, label: "Buscar justificativas plausíveis" },
+                        { key: "opc_legislacao" as const, label: "Citar legislação e acórdãos TCU" },
+                        { key: "opc_relacao_itens" as const, label: "Verificar relação com outros itens" },
+                        { key: "opc_contestar" as const, label: "Contestar especificação restritiva" },
+                      ].map((op) => (
+                        <label key={op.key} className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={itemConfigurando[op.key] as boolean}
+                            onCheckedChange={(v) =>
+                              setItemConfigurando((prev) => (prev ? { ...prev, [op.key]: !!v } : prev))
+                            }
+                          />
+                          <span className="text-sm">{op.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Botões de ação */}
+                  <div className="flex gap-3 pt-2 border-t border-border">
+                    <Button
+                      onClick={gerarAgora}
+                      disabled={gerandoItem || !itemConfigurando.objetivo}
+                      className="flex-1"
+                    >
+                      {gerandoItem ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando… (15-30s)
+                        </>
+                      ) : (
+                        "🤖 Gerar Agora"
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={adicionarAFila}
+                      disabled={!itemConfigurando.objetivo || itemConfigurando.id > 0}
+                      className="flex-1"
+                    >
+                      ➕ Adicionar à Fila
+                    </Button>
+                  </div>
+
+                  {/* Output gerado inline */}
+                  {itemConfigurando.status === "gerado" && itemConfigurando.output_gerado && (
+                    <div className="border border-border rounded-lg p-4 bg-muted/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">Resultado gerado</span>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={() => copiarTexto(itemConfigurando.output_gerado || "")}
+                          >
+                            <Copy className="h-3 w-3 mr-1" /> Copiar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={gerarAgora}
+                            disabled={gerandoItem}
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" /> Regenerar
+                          </Button>
+                        </div>
+                      </div>
+                      <pre className="text-xs whitespace-pre-wrap text-foreground leading-relaxed">
+                        {itemConfigurando.output_gerado}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
             </main>
 
             {/* ── PAINEL DIREITO ── */}
-            <aside className="flex w-[380px] shrink-0 flex-col border-l border-border bg-card">
-              <Tabs value={abaPainelDir} onValueChange={(v) => setAbaPainelDir(v as any)} className="flex flex-1 flex-col">
-                <TabsList className="mx-2 mt-2 w-auto">
-                  <TabsTrigger value="item" className="flex-1 text-xs">Este Item</TabsTrigger>
-                  {qtdGerados >= 2 && <TabsTrigger value="consolidado" className="flex-1 text-xs">Consolidado</TabsTrigger>}
-                </TabsList>
+            <aside className="flex w-[360px] shrink-0 flex-col border-l border-border bg-card h-full overflow-hidden">
+              {/* Tabs */}
+              <div className="flex border-b border-border">
+                <button
+                  onClick={() => setAbaPainelDir("gerados")}
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                    abaPainelDir === "gerados"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Gerados ({gerados.length})
+                </button>
+                <button
+                  onClick={() => {
+                    setAbaPainelDir("consolidado");
+                    if (sessaoId && gerados.length >= 2) {
+                      fetchConsolidado(sessaoId)
+                        .then((r) => setConsolidadoTexto(r.data?.texto || ""))
+                        .catch(() => setConsolidadoTexto("Erro ao carregar consolidado."));
+                    }
+                  }}
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                    abaPainelDir === "consolidado"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Consolidado
+                </button>
+              </div>
 
-                <TabsContent value="item" className="flex flex-1 flex-col overflow-hidden px-3 pb-3">
-                  {!itemSelecionado || (!itemSelecionado.output_gerado && itemSelecionado.status !== "gerando") ? (
-                    <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-                      Configure e gere o questionamento no painel central
-                    </div>
-                  ) : itemSelecionado.status === "gerando" ? (
-                    <div className="flex flex-1 items-center justify-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Aguardando geração…
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 flex-col gap-2 pt-2">
-                      <ScrollArea className="flex-1 rounded-md border border-border bg-background p-3">
-                        <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground">
-                          {itemSelecionado.output_gerado}
-                        </pre>
-                      </ScrollArea>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => copiarTexto(itemSelecionado.output_gerado)}>
-                          <Copy className="mr-1 h-3 w-3" /> Copiar
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => gerarItem(itemSelecionado.id)} disabled={gerando}>
-                          <RefreshCw className="mr-1 h-3 w-3" /> Regenerar
-                        </Button>
+              <ScrollArea className="flex-1 p-3">
+                {abaPainelDir === "gerados" && (
+                  <div className="space-y-3">
+                    {gerados.length === 0 ? (
+                      <div className="text-center text-muted-foreground text-sm py-8">
+                        <p className="text-2xl mb-2">📝</p>
+                        <p>Nenhum item gerado ainda</p>
+                        <p className="text-xs mt-1">Use "Gerar Agora" ou "Gerar Todos"</p>
                       </div>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="consolidado" className="flex flex-1 flex-col overflow-hidden px-3 pb-3">
-                  <ScrollArea className="flex-1 rounded-md border border-border bg-background p-3">
-                    <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground">{consolidado}</pre>
-                  </ScrollArea>
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" onClick={() => copiarTexto(consolidado)}>
-                      <Copy className="mr-1 h-3 w-3" /> Copiar tudo
-                    </Button>
-                    <Button size="sm" onClick={() => setExportModal(true)}>
-                      <FileDown className="mr-1 h-3 w-3" /> Exportar DOCX
-                    </Button>
+                    ) : (
+                      gerados.map((item) => (
+                        <div key={item.id} className="border border-border rounded-lg p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-mono bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                              {item.numero_item.replace(/\.$/, "")}
+                            </span>
+                            <span className="text-[11px] text-green-600">✅ Gerado</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{item.titulo_item}</p>
+                          <p className="text-xs text-foreground line-clamp-3 bg-muted p-2 rounded">
+                            {item.output_gerado?.slice(0, 200)}…
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs h-7"
+                              onClick={() => {
+                                setItemConfigurando(item);
+                              }}
+                            >
+                              👁 Ver completo
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7 px-2"
+                              onClick={() => copiarTexto(item.output_gerado || "")}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                </TabsContent>
-              </Tabs>
+                )}
+
+                {abaPainelDir === "consolidado" && (
+                  <div className="space-y-3">
+                    {gerados.length < 2 ? (
+                      <div className="text-center text-muted-foreground text-sm py-8">
+                        <p>Gere ao menos 2 itens para ver o consolidado</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs"
+                            onClick={() => copiarTexto(consolidadoTexto)}
+                          >
+                            <Copy className="h-3 w-3 mr-1" /> Copiar tudo
+                          </Button>
+                          <Button size="sm" className="flex-1 text-xs" onClick={() => setModalExportar(true)}>
+                            <FileDown className="h-3 w-3 mr-1" /> Exportar DOCX
+                          </Button>
+                        </div>
+                        <pre className="text-xs text-foreground whitespace-pre-wrap bg-muted p-3 rounded overflow-x-auto leading-relaxed">
+                          {consolidadoTexto || "Carregando..."}
+                        </pre>
+                      </>
+                    )}
+                  </div>
+                )}
+              </ScrollArea>
             </aside>
           </div>
         </div>
       )}
 
       {/* ══════ MODAL EXPORTAR ══════ */}
-      <Dialog open={exportModal} onOpenChange={setExportModal}>
+      <Dialog open={modalExportar} onOpenChange={setModalExportar}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Exportar DOCX</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Exportar Questionamentos</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Empresa</label>
+              <label className="text-sm font-medium mb-1 block text-foreground">Empresa</label>
               <Input value={exportEmpresa} onChange={(e) => setExportEmpresa(e.target.value)} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Responsável técnico</label>
-              <Input value={exportResponsavel} onChange={(e) => setExportResponsavel(e.target.value)} />
+              <label className="text-sm font-medium mb-1 block text-foreground">Responsável técnico (opcional)</label>
+              <Input
+                value={exportResponsavel}
+                onChange={(e) => setExportResponsavel(e.target.value)}
+                placeholder="Nome do responsável"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={async () => { if (sessaoId) { await exportarDocx(sessaoId, exportEmpresa, exportResponsavel); setExportModal(false); } }}>
+            <Button
+              onClick={async () => {
+                if (sessaoId) {
+                  await exportarDocx(sessaoId, exportEmpresa, exportResponsavel);
+                  setModalExportar(false);
+                }
+              }}
+            >
               📄 Gerar e Baixar DOCX
             </Button>
           </DialogFooter>
