@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   fetchRadarKpis, fetchRadarPorCategoria, fetchRadarPorEsfera,
   fetchRadarPorUf, fetchRadarTimeline, fetchRadarTopOrgaos,
   fetchRadarItens, fetchRadarFiltrosOpcoes,
+  fetchRadarChat, fetchRadarChatSugestoes,
 } from "@/lib/api";
+import ReactMarkdown from "react-markdown";
 import AppHeader from "@/components/AppHeader";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +13,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
 } from "recharts";
-import { Filter, List, LayoutDashboard, Download, ChevronLeft, ChevronRight, ChevronsUpDown, ExternalLink } from "lucide-react";
+import { Filter, List, LayoutDashboard, Download, ChevronLeft, ChevronRight, ChevronsUpDown, ExternalLink, MessageCircle, Send, X, Sparkles } from "lucide-react";
 
 /* ──────────────── Types ──────────────── */
 
@@ -78,6 +80,46 @@ export default function RadarPage() {
   const [carregando, setCarregando] = useState(true);
   const [carregandoItens, setCarregandoItens] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
+
+  /* ── Chat state ── */
+  const [chatAberto, setChatAberto] = useState(false);
+  const [chatMsgs, setChatMsgs] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatCarregando, setChatCarregando] = useState(false);
+  const [chatSugestoes, setChatSugestoes] = useState<string[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatAberto && chatSugestoes.length === 0) {
+      fetchRadarChatSugestoes().then(r => {
+        if (r.success && r.data) setChatSugestoes(r.data);
+      }).catch(() => {});
+    }
+  }, [chatAberto, chatSugestoes.length]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMsgs]);
+
+  const enviarChat = async (pergunta: string) => {
+    if (!pergunta.trim() || chatCarregando) return;
+    const novaMsgs = [...chatMsgs, { role: "user" as const, content: pergunta.trim() }];
+    setChatMsgs(novaMsgs);
+    setChatInput("");
+    setChatCarregando(true);
+    try {
+      const r = await fetchRadarChat(pergunta.trim());
+      if (r.success && r.data?.resposta) {
+        setChatMsgs(prev => [...prev, { role: "assistant", content: r.data.resposta }]);
+      } else {
+        setChatMsgs(prev => [...prev, { role: "assistant", content: "Desculpe, não consegui processar sua pergunta." }]);
+      }
+    } catch {
+      setChatMsgs(prev => [...prev, { role: "assistant", content: "Erro ao conectar com o assistente." }]);
+    } finally {
+      setChatCarregando(false);
+    }
+  };
 
   /* ── Param builder ── */
   const buildParams = (f: FiltrosRadar): Record<string, string> => {
@@ -506,6 +548,12 @@ export default function RadarPage() {
             </div>
           </div>
         </main>
+        <RadarChatWidget
+          aberto={chatAberto} setAberto={setChatAberto}
+          msgs={chatMsgs} input={chatInput} setInput={setChatInput}
+          carregando={chatCarregando} sugestoes={chatSugestoes}
+          enviar={enviarChat} endRef={chatEndRef}
+        />
       </div>
     );
   }
@@ -640,6 +688,12 @@ export default function RadarPage() {
           </button>
         </div>
       </main>
+      <RadarChatWidget
+        aberto={chatAberto} setAberto={setChatAberto}
+        msgs={chatMsgs} input={chatInput} setInput={setChatInput}
+        carregando={chatCarregando} sugestoes={chatSugestoes}
+        enviar={enviarChat} endRef={chatEndRef}
+      />
     </div>
   );
 }
@@ -651,6 +705,125 @@ function KpiCard({ label, value, accent }: { label: string; value: string; accen
     <div className="rounded-xl border bg-card p-5">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className={`mt-1 text-xl font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
+    </div>
+  );
+}
+
+/* ──────────────── Chat Widget ──────────────── */
+
+interface ChatWidgetProps {
+  aberto: boolean;
+  setAberto: (v: boolean) => void;
+  msgs: { role: "user" | "assistant"; content: string }[];
+  input: string;
+  setInput: (v: string) => void;
+  carregando: boolean;
+  sugestoes: string[];
+  enviar: (pergunta: string) => void;
+  endRef: React.RefObject<HTMLDivElement>;
+}
+
+function RadarChatWidget({ aberto, setAberto, msgs, input, setInput, carregando, sugestoes, enviar, endRef }: ChatWidgetProps) {
+  if (!aberto) {
+    return (
+      <button
+        onClick={() => setAberto(true)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-105"
+        title="Pergunte à IA sobre compras do governo"
+      >
+        <MessageCircle size={24} />
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex w-96 max-w-[calc(100vw-2rem)] flex-col rounded-2xl border bg-card shadow-2xl" style={{ height: "min(520px, calc(100vh - 6rem))" }}>
+      {/* Header */}
+      <div className="flex items-center justify-between rounded-t-2xl border-b bg-primary px-4 py-3">
+        <div className="flex items-center gap-2 text-primary-foreground">
+          <Sparkles size={18} />
+          <span className="text-sm font-semibold">Assistente Radar</span>
+        </div>
+        <button onClick={() => setAberto(false)} className="text-primary-foreground/70 hover:text-primary-foreground transition-colors">
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {msgs.length === 0 && (
+          <div className="text-center">
+            <p className="mb-3 text-sm text-muted-foreground">Pergunte sobre compras planejadas pelo governo</p>
+            {sugestoes.length > 0 && (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {sugestoes.slice(0, 4).map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => enviar(s)}
+                    className="rounded-lg border bg-muted/50 px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors text-left"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {msgs.map((m, i) => (
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
+                m.role === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground"
+              }`}
+            >
+              {m.role === "assistant" ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:my-1 [&>ol]:my-1">
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                </div>
+              ) : (
+                m.content
+              )}
+            </div>
+          </div>
+        ))}
+        {carregando && (
+          <div className="flex justify-start">
+            <div className="rounded-xl bg-muted px-4 py-2">
+              <span className="inline-flex gap-1">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms" }} />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "150ms" }} />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "300ms" }} />
+              </span>
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t p-3">
+        <form
+          onSubmit={e => { e.preventDefault(); enviar(input); }}
+          className="flex gap-2"
+        >
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Ex: Quais órgãos mais compram software?"
+            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            disabled={carregando}
+          />
+          <button
+            type="submit"
+            disabled={carregando || !input.trim()}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+          >
+            <Send size={16} />
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
