@@ -286,7 +286,9 @@ export default function LicitacoesPage() {
                 <th className="px-4 py-3 font-medium">#</th>
                 <th className="px-4 py-3 font-medium">Objeto</th>
                 <th className="px-4 py-3 font-medium">Órgão</th>
+                <th className="px-4 py-3 font-medium">Publicação</th>
                 <th className="px-4 py-3 font-medium">UF</th>
+                <th className="px-4 py-3 font-medium">Esfera</th>
                 <th className="px-4 py-3 font-medium">Valor Estimado</th>
                 <th className="px-4 py-3 font-medium">Encerramento</th>
                 <th className="px-4 py-3 font-medium">Score</th>
@@ -297,14 +299,14 @@ export default function LicitacoesPage() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="border-b">
-                    {Array.from({ length: 8 }).map((_, j) => (
+                    {Array.from({ length: 10 }).map((_, j) => (
                       <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-full" /></td>
                     ))}
                   </tr>
                 ))
               ) : results.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">
                     Nenhuma licitação encontrada
                   </td>
                 </tr>
@@ -315,7 +317,7 @@ export default function LicitacoesPage() {
                     <td className="px-4 py-3 text-muted-foreground">{(page - 1) * perPage + idx + 1}</td>
                     <td className="max-w-[280px] px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        {item.capturada_em && new Date(item.capturada_em).toDateString() === new Date().toDateString() && (
+                     {item.data_publicacao_pncp?.slice(0, 10) === new Date().toISOString().slice(0, 10) && (
                           <span className="shrink-0 rounded-full bg-success/15 px-1.5 py-0.5 text-[10px] font-semibold text-success">Nova</span>
                         )}
                         <Tooltip>
@@ -327,15 +329,42 @@ export default function LicitacoesPage() {
                       </div>
                     </td>
                     <td className="max-w-[180px] truncate px-4 py-3 text-muted-foreground">{item.orgao_razao_social || item.orgao || "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.uf || "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{formatDateBR(item.data_publicacao_pncp)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.unidade_uf_sigla || "—"}</td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const esferas: Record<string, { label: string; cls: string }> = {
+                          F: { label: "Federal", cls: "bg-blue-100 text-blue-700" },
+                          E: { label: "Estadual", cls: "bg-purple-100 text-purple-700" },
+                          M: { label: "Municipal", cls: "bg-green-100 text-green-700" },
+                          D: { label: "Distrital", cls: "bg-yellow-100 text-yellow-700" },
+                          N: { label: "Nacional", cls: "bg-gray-100 text-gray-700" },
+                        };
+                        const esfera = esferas[item.orgao_esfera_id] ?? { label: item.orgao_esfera_id || "—", cls: "bg-gray-100 text-gray-600" };
+                        return <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${esfera.cls}`}>{esfera.label}</span>;
+                      })()}
+                    </td>
                     <td className="px-4 py-3 font-medium text-foreground">{formatCurrency(item.valor_total_estimado)}</td>
                     <td className="px-4 py-3"><EncBadge date={item.data_encerramento_proposta} /></td>
                     <td className="px-4 py-3"><ScoreBadge score={item.score_palavras} /></td>
                     <td className="px-4 py-3">
-                      <button onClick={e => { e.stopPropagation(); openDetail(item.id); }}
-                        className="rounded-lg bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20">
-                        Ver
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={e => { e.stopPropagation(); openDetail(item.id); }}
+                          className="rounded-lg bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20">
+                          Ver
+                        </button>
+                        {item.link_sistema_origem?.trim() ? (
+                          <a href={item.link_sistema_origem.trim()} target="_blank" rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted">
+                            <ExternalLink className="h-3 w-3" /> Link
+                          </a>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground opacity-40 cursor-not-allowed">
+                            <ExternalLink className="h-3 w-3" /> Link
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
