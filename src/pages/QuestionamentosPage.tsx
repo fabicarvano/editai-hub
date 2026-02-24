@@ -90,7 +90,10 @@ export default function QuestionamentosPage() {
   useEffect(() => {
     if (modo === "inicio") {
       fetchRascunhos()
-        .then((r) => setRascunhos(r.data ?? []))
+        .then((r) => {
+          const list = Array.isArray(r?.data) ? r.data : Array.isArray(r?.data?.rascunhos) ? r.data.rascunhos : [];
+          setRascunhos(list.filter(Boolean));
+        })
         .catch(() => {});
     }
   }, [modo]);
@@ -256,7 +259,7 @@ export default function QuestionamentosPage() {
       i.numero_item?.toLowerCase().includes(buscaItens.toLowerCase())
   );
 
-  const qtdGerados = safeFila.filter((i) => i.status === "gerado").length;
+  const qtdGerados = safeFila.filter((i) => i?.status === "gerado").length;
 
   const voltar = () => {
     setModo("inicio");
@@ -292,7 +295,7 @@ export default function QuestionamentosPage() {
               <p className="mt-4 text-sm text-muted-foreground">Nenhum rascunho salvo</p>
             ) : (
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {rascunhos.map((r) => (
+                {rascunhos.filter(Boolean).map((r) => (
                   <Card key={r.sessao_id}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium leading-snug">
