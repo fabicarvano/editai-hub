@@ -254,7 +254,11 @@ export default function RadarPage() {
           <label className="mb-1 block text-xs font-medium text-muted-foreground">UF</label>
           <select value={filtros.uf} onChange={e => setFiltros(f => ({ ...f, uf: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
             <option value="">Todas</option>
-            {opcoesFiltros?.ufs?.map((u: string) => <option key={u} value={u}>{u}</option>)}
+            {opcoesFiltros?.ufs?.map((u: any) => {
+              const val = typeof u === "string" ? u : u.uf ?? u.value ?? String(u);
+              const label = typeof u === "string" ? u : u.uf_nome ?? u.uf ?? u.label ?? String(u);
+              return <option key={val} value={val}>{label}</option>;
+            })}
           </select>
         </div>
         {/* Esfera */}
@@ -262,7 +266,11 @@ export default function RadarPage() {
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Esfera</label>
           <select value={filtros.esfera} onChange={e => setFiltros(f => ({ ...f, esfera: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
             <option value="">Todas</option>
-            {opcoesFiltros?.esferas?.map((e: string) => <option key={e} value={e}>{e}</option>)}
+            {opcoesFiltros?.esferas?.map((e: any) => {
+              const val = typeof e === "string" ? e : e.esfera ?? e.value ?? String(e);
+              const label = typeof e === "string" ? e : e.esfera_nome ?? e.esfera ?? e.label ?? String(e);
+              return <option key={val} value={val}>{label}</option>;
+            })}
           </select>
         </div>
         {/* Poder */}
@@ -270,7 +278,11 @@ export default function RadarPage() {
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Poder</label>
           <select value={filtros.poder} onChange={e => setFiltros(f => ({ ...f, poder: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
             <option value="">Todos</option>
-            {opcoesFiltros?.poderes?.map((p: string) => <option key={p} value={p}>{p}</option>)}
+            {opcoesFiltros?.poderes?.map((p: any) => {
+              const val = typeof p === "string" ? p : p.poder ?? p.value ?? String(p);
+              const label = typeof p === "string" ? p : p.poder_nome ?? p.poder ?? p.label ?? String(p);
+              return <option key={val} value={val}>{label}</option>;
+            })}
           </select>
         </div>
         {/* Categoria */}
@@ -278,7 +290,11 @@ export default function RadarPage() {
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Categoria</label>
           <select value={filtros.categoria} onChange={e => setFiltros(f => ({ ...f, categoria: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
             <option value="">Todas</option>
-            {opcoesFiltros?.categorias?.map((c: string) => <option key={c} value={c}>{c}</option>)}
+            {opcoesFiltros?.categorias?.map((c: any) => {
+              const val = typeof c === "string" ? c : c.categoria ?? c.value ?? String(c);
+              const label = typeof c === "string" ? c : c.categoria_nome ?? c.categoria ?? c.label ?? String(c);
+              return <option key={val} value={val}>{label}</option>;
+            })}
           </select>
         </div>
         {/* Valor mín */}
