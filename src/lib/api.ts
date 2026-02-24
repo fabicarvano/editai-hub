@@ -224,11 +224,75 @@ export async function deletarRascunho(sessaoId: number) {
   return res.json();
 }
 
-export async function fetchRadarKpis(params: Record<string, string | number> = {}) {
-  const qs = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString();
-  const res = await fetch(`${API_EDITAL}/api/radar/kpis${qs ? '?' + qs : ''}`, { headers: authHeaders() });
-  await handleResponse(res);
-  return res.json();
+// ——— Radar de Compras do Governo ———
+
+function buildRadarQs(params: Record<string, any> = {}) {
+  const p = new URLSearchParams()
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") p.append(k, String(v))
+  })
+  return p.toString()
+}
+
+export async function fetchRadarKpis(params: Record<string, any> = {}) {
+  const qs = buildRadarQs(params)
+  const res = await fetch(`${API_LICITACOES}/api/radar/kpis${qs ? '?' + qs : ''}`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarPorCategoria(params: Record<string, any> = {}) {
+  const qs = buildRadarQs({ limit: 10, ...params })
+  const res = await fetch(`${API_LICITACOES}/api/radar/por-categoria?${qs}`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarPorEsfera(params: Record<string, any> = {}) {
+  const qs = buildRadarQs(params)
+  const res = await fetch(`${API_LICITACOES}/api/radar/por-esfera?${qs}`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarPorUf(params: Record<string, any> = {}) {
+  const qs = buildRadarQs(params)
+  const res = await fetch(`${API_LICITACOES}/api/radar/por-uf?${qs}`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarTimeline(params: Record<string, any> = {}) {
+  const qs = buildRadarQs(params)
+  const res = await fetch(`${API_LICITACOES}/api/radar/timeline?${qs}`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarTopOrgaos(params: Record<string, any> = {}) {
+  const qs = buildRadarQs({ limit: 10, ...params })
+  const res = await fetch(`${API_LICITACOES}/api/radar/top-orgaos?${qs}`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarItens(params: Record<string, any> = {}) {
+  const qs = buildRadarQs(params)
+  const res = await fetch(`${API_LICITACOES}/api/radar/itens?${qs}`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarFiltrosOpcoes() {
+  const res = await fetch(`${API_LICITACOES}/api/radar/filtros-opcoes`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarChat(pergunta: string) {
+  const res = await fetch(`${API_LICITACOES}/api/radar/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ pergunta }),
+  })
+  await handleResponse(res); return res.json()
+}
+
+export async function fetchRadarChatSugestoes() {
+  const res = await fetch(`${API_LICITACOES}/api/radar/chat/sugestoes`, { headers: authHeaders() })
+  await handleResponse(res); return res.json()
 }
 
 export async function exportarDocx(sessaoId: number, empresa: string, responsavel: string) {
