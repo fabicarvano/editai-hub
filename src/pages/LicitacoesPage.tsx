@@ -85,7 +85,7 @@ export default function LicitacoesPage() {
     setLoading(true);
     console.log("buscando licitacoes...");
     try {
-      const params: Record<string, string | number> = { page, per_page: perPage };
+      const params: Record<string, string | number> = { pagina: page, por_pagina: perPage };
       if (appliedFilters.busca) params.busca = appliedFilters.busca;
       if (appliedFilters.uf) params.uf = appliedFilters.uf;
       if (appliedFilters.municipio) params.municipio = appliedFilters.municipio;
@@ -97,10 +97,10 @@ export default function LicitacoesPage() {
       if (appliedFilters.valor_min) params.valor_min = appliedFilters.valor_min;
       if (appliedFilters.valor_max) params.valor_max = appliedFilters.valor_max;
       if (appliedFilters.notificado) params.notificado = appliedFilters.notificado;
-      if (sort === "recentes") params.ordering = "-data_publicacao";
-      else if (sort === "encerramento") params.ordering = "data_encerramento_proposta";
-      else if (sort === "valor") params.ordering = "-valor_total_estimado";
-      else if (sort === "score") params.ordering = "-score";
+      if (sort === "recentes") { params.ordem = "capturada_em"; params.direcao = "desc"; }
+      else if (sort === "encerramento") { params.ordem = "data_encerramento_proposta"; params.direcao = "asc"; }
+      else if (sort === "valor") { params.ordem = "valor_total_estimado"; params.direcao = "desc"; }
+      else if (sort === "score") { params.ordem = "score_palavras"; params.direcao = "desc"; }
       const res = await fetchLicitacoes(params);
       setData(res);
     } catch { }
@@ -138,14 +138,14 @@ export default function LicitacoesPage() {
     setPage(1);
   };
 
-  const results = data?.results || data?.items || [];
-  const totalCount = data?.count ?? data?.total ?? results.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+  const results = data?.data || [];
+  const totalCount = data?.paginacao?.total ?? 0;
+  const totalPages = data?.paginacao?.total_paginas ?? 1;
 
   const openLeadPopover = async () => {
     setLeadOpen(true);
     if (users.length === 0) {
-      try { const u = await fetchUsuarios(); setUsers(Array.isArray(u) ? u : u?.results || []); } catch {}
+      try { const u = await fetchUsuarios(); setUsers(u?.data || []); } catch {}
     }
   };
 
@@ -330,7 +330,7 @@ export default function LicitacoesPage() {
                     <td className="px-4 py-3 text-muted-foreground">{item.uf || "—"}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{formatCurrency(item.valor_total_estimado)}</td>
                     <td className="px-4 py-3"><EncBadge date={item.data_encerramento_proposta} /></td>
-                    <td className="px-4 py-3"><ScoreBadge score={item.score} /></td>
+                    <td className="px-4 py-3"><ScoreBadge score={item.score_palavras} /></td>
                     <td className="px-4 py-3">
                       <button onClick={e => { e.stopPropagation(); openDetail(item.id); }}
                         className="rounded-lg bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20">
@@ -378,8 +378,8 @@ export default function LicitacoesPage() {
               <div>
                 <p className="text-sm font-semibold text-foreground">{detail.numero_controle_pncp || `ID #${detail.id}`}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {detail.situacao && <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">{detail.situacao}</span>}
-                  <ScoreBadge score={detail.score} />
+                  {detail.situacao_nome && <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">{detail.situacao_nome}</span>}
+                  <ScoreBadge score={detail.score_palavras} />
                 </div>
                 {detail.link_sistema_origem && (
                   <a href={detail.link_sistema_origem} target="_blank" rel="noopener noreferrer"
@@ -409,7 +409,7 @@ export default function LicitacoesPage() {
                   <p><span className="text-muted-foreground">Razão Social:</span> <span className="font-medium text-foreground">{detail.orgao_razao_social || "—"}</span></p>
                   <p><span className="text-muted-foreground">CNPJ:</span> <span className="font-medium text-foreground">{detail.orgao_cnpj || "—"}</span></p>
                   <p><span className="text-muted-foreground">Unidade:</span> <span className="font-medium text-foreground">{detail.unidade_razao_social || detail.unidade_nome || "—"}</span></p>
-                  <p><span className="text-muted-foreground">Localização:</span> <span className="font-medium text-foreground">{detail.municipio || "—"}/{detail.uf || "—"}</span></p>
+                  <p><span className="text-muted-foreground">Localização:</span> <span className="font-medium text-foreground">{detail.unidade_municipio_nome || "—"}/{detail.unidade_uf_sigla || "—"}</span></p>
                 </div>
               </section>
 
@@ -429,7 +429,7 @@ export default function LicitacoesPage() {
               <section>
                 <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Datas</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="text-muted-foreground">Publicação:</span> <span className="font-medium text-foreground">{formatDateBR(detail.data_publicacao)}</span></div>
+                  <div><span className="text-muted-foreground">Publicação:</span> <span className="font-medium text-foreground">{formatDateBR(detail.data_publicacao_pncp)}</span></div>
                   <div><span className="text-muted-foreground">Abertura:</span> <span className="font-medium text-foreground">{formatDateBR(detail.data_abertura_proposta)}</span></div>
                   <div className="col-span-2">
                     <span className="text-muted-foreground">Encerramento:</span>{" "}
@@ -449,16 +449,16 @@ export default function LicitacoesPage() {
               </section>
 
               {/* Palavras-chave */}
-              {detail.palavras_match && detail.palavras_match.length > 0 && (
+              {detail.match_palavras_chave && (
                 <section>
                   <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Palavras-chave match</h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {(Array.isArray(detail.palavras_match) ? detail.palavras_match : [detail.palavras_match]).map((w: string, i: number) => (
+                    {detail.match_palavras_chave.split(",").map((s: string) => s.trim()).filter(Boolean).map((w: string, i: number) => (
                       <span key={i} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{w}</span>
                     ))}
                   </div>
-                  {detail.score != null && (
-                    <p className="mt-2 text-sm text-muted-foreground">Score: <ScoreBadge score={detail.score} /></p>
+                  {detail.score_palavras != null && (
+                    <p className="mt-2 text-sm text-muted-foreground">Score: <ScoreBadge score={detail.score_palavras} /></p>
                   )}
                 </section>
               )}
