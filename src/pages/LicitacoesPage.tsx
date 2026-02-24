@@ -116,7 +116,7 @@ export default function LicitacoesPage() {
     setLeadOpen(false);
     try {
       const d = await fetchLicitacaoDetalhe(id);
-      setDetail(d);
+      setDetail(d?.data ?? d);
     } catch { setDetail(null); }
     setDetailLoading(false);
   };
