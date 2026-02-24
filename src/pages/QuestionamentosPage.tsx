@@ -151,15 +151,19 @@ export default function QuestionamentosPage() {
     };
 
     if (ordenados.length === 0) return [];
-    const nivelMinimo = Math.min(...ordenados.map((i) => i.nivel));
+    const nivelMinimo = ordenados.length > 0 ? Math.min(...ordenados.map((i) => i.nivel || 1)) : 1;
     return construirNos(ordenados, nivelMinimo);
   }, []);
 
   useEffect(() => {
     if (itensDetectados.length > 0) {
-      setArvore(construirArvore(itensDetectados));
-      const nivel1 = itensDetectados.filter((i) => i.nivel === 1).map((i) => i.numero_item);
-      setExpandidos(new Set(nivel1));
+      const novaArvore = construirArvore(itensDetectados);
+      setArvore(novaArvore);
+      // Expandir todos os nós de nível 1 automaticamente
+      const nivel1Nums = itensDetectados
+        .filter((i) => (i.nivel || 1) === 1)
+        .map((i) => i.numero_item);
+      setExpandidos(new Set(nivel1Nums));
     } else {
       setArvore([]);
     }
@@ -410,11 +414,11 @@ export default function QuestionamentosPage() {
     return (
       <div>
         <div
-          className={`group flex items-center gap-1.5 py-1 pr-2 rounded-md cursor-pointer transition-colors ${
-            estaConfigurando ? "bg-primary/10 border border-primary/30" : "hover:bg-accent"
-          }`}
+          className={`group flex items-center gap-1.5 py-1 pr-2 rounded-md transition-colors ${
+            eNivel1 ? "cursor-pointer hover:bg-accent" : "cursor-pointer"
+          } ${estaConfigurando ? "bg-primary/10 border border-primary/30" : !eNivel1 ? "hover:bg-accent" : ""}`}
           style={{ paddingLeft: `${4 + indentacao}px` }}
-          onClick={() => !eNivel1 && abrirConfigurador(item)}
+          onClick={() => eNivel1 && temFilhos ? toggleExpansao(item.numero_item) : !eNivel1 ? abrirConfigurador(item) : null}
         >
           {/* Expand/collapse */}
           <button
