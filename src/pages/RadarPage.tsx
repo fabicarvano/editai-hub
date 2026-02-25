@@ -14,7 +14,8 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
 } from "recharts";
-import { Filter, List, LayoutDashboard, Download, ChevronLeft, ChevronRight, ChevronsUpDown, ExternalLink, MessageCircle, Send, X, Sparkles } from "lucide-react";
+import { Filter, List, LayoutDashboard, Download, ChevronLeft, ChevronRight, ChevronDown, ChevronsUpDown, ExternalLink, MessageCircle, Send, X, Sparkles } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 /* ──────────────── Types ──────────────── */
 
@@ -268,115 +269,133 @@ export default function RadarPage() {
 
   /* ──────────────── FILTER PANEL (shared) ──────────────── */
   const filterPanel = (compact = false) => (
-    <div className={`rounded-xl border bg-card p-5 ${compact ? "mb-4" : "mb-6"}`}>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Busca */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Busca</label>
-          <input
-            value={filtros.busca}
-            onChange={e => setFiltros(f => ({ ...f, busca: e.target.value }))}
-            placeholder="Produto, órgão..."
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        {/* UF */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">UF</label>
-          <select value={filtros.uf} onChange={e => setFiltros(f => ({ ...f, uf: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
-            <option value="">Todas</option>
-            {opcoesFiltros?.ufs?.map((u: any) => {
-              const val = typeof u === "string" ? u : u.uf ?? u.value ?? String(u);
-              const label = typeof u === "string" ? u : u.uf_nome ?? u.uf ?? u.label ?? String(u);
-              return <option key={val} value={val}>{label}</option>;
-            })}
-          </select>
-        </div>
-        {/* Esfera */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Esfera</label>
-          <select value={filtros.esfera} onChange={e => setFiltros(f => ({ ...f, esfera: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
-            <option value="">Todas</option>
-            {opcoesFiltros?.esferas?.map((e: any) => {
-              const val = typeof e === "string" ? e : e.esfera ?? e.value ?? String(e);
-              const label = typeof e === "string" ? e : e.esfera_nome ?? e.esfera ?? e.label ?? String(e);
-              return <option key={val} value={val}>{label}</option>;
-            })}
-          </select>
-        </div>
-        {/* Poder */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Poder</label>
-          <select value={filtros.poder} onChange={e => setFiltros(f => ({ ...f, poder: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
-            <option value="">Todos</option>
-            {opcoesFiltros?.poderes?.map((p: any) => {
-              const val = typeof p === "string" ? p : p.poder ?? p.value ?? String(p);
-              const label = typeof p === "string" ? p : p.poder_nome ?? p.poder ?? p.label ?? String(p);
-              return <option key={val} value={val}>{label}</option>;
-            })}
-          </select>
-        </div>
-        {/* Categoria */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Categoria</label>
-          <select value={filtros.categoria} onChange={e => setFiltros(f => ({ ...f, categoria: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
-            <option value="">Todas</option>
-            {opcoesFiltros?.categorias?.map((c: any) => {
-              const val = typeof c === "string" ? c : c.categoria ?? c.value ?? String(c);
-              const label = typeof c === "string" ? c : c.categoria_nome ?? c.categoria ?? c.label ?? String(c);
-              return <option key={val} value={val}>{label}</option>;
-            })}
-          </select>
-        </div>
-        {/* Valor mín */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Valor mín</label>
-          <input
-            type="number" value={filtros.valor_min}
-            onChange={e => setFiltros(f => ({ ...f, valor_min: e.target.value }))}
-            placeholder="0"
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        {/* Valor máx */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Valor máx</label>
-          <input
-            type="number" value={filtros.valor_max}
-            onChange={e => setFiltros(f => ({ ...f, valor_max: e.target.value }))}
-            placeholder="999.999.999"
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        {/* Município */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Município</label>
-          <input
-            value={filtros.municipio}
-            onChange={e => setFiltros(f => ({ ...f, municipio: e.target.value }))}
-            placeholder="Ex: Brasília"
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
+    <Collapsible open={showFiltros} onOpenChange={setShowFiltros} className={compact ? "mb-4" : "mb-6"}>
+      <div className="rounded-xl border bg-card">
+        <CollapsibleTrigger asChild>
+          <button className="flex w-full items-center justify-between px-5 py-3 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors rounded-xl">
+            <span className="inline-flex items-center gap-2">
+              <Filter size={16} />
+              Filtros
+              {filtrosAtivos > 0 && (
+                <span className="rounded-full bg-primary/15 px-1.5 text-xs font-semibold text-primary">{filtrosAtivos}</span>
+              )}
+            </span>
+            <ChevronDown size={16} className={`transition-transform duration-200 ${showFiltros ? "rotate-180" : ""}`} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-5 pb-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Busca */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Busca</label>
+                <input
+                  value={filtros.busca}
+                  onChange={e => setFiltros(f => ({ ...f, busca: e.target.value }))}
+                  placeholder="Produto, órgão..."
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              {/* UF */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">UF</label>
+                <select value={filtros.uf} onChange={e => setFiltros(f => ({ ...f, uf: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+                  <option value="">Todas</option>
+                  {opcoesFiltros?.ufs?.map((u: any) => {
+                    const val = typeof u === "string" ? u : u.uf ?? u.value ?? String(u);
+                    const label = typeof u === "string" ? u : u.uf_nome ?? u.uf ?? u.label ?? String(u);
+                    return <option key={val} value={val}>{label}</option>;
+                  })}
+                </select>
+              </div>
+              {/* Esfera */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Esfera</label>
+                <select value={filtros.esfera} onChange={e => setFiltros(f => ({ ...f, esfera: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+                  <option value="">Todas</option>
+                  {opcoesFiltros?.esferas?.map((e: any) => {
+                    const val = typeof e === "string" ? e : e.esfera ?? e.value ?? String(e);
+                    const label = typeof e === "string" ? e : e.esfera_nome ?? e.esfera ?? e.label ?? String(e);
+                    return <option key={val} value={val}>{label}</option>;
+                  })}
+                </select>
+              </div>
+              {/* Poder */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Poder</label>
+                <select value={filtros.poder} onChange={e => setFiltros(f => ({ ...f, poder: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+                  <option value="">Todos</option>
+                  {opcoesFiltros?.poderes?.map((p: any) => {
+                    const val = typeof p === "string" ? p : p.poder ?? p.value ?? String(p);
+                    const label = typeof p === "string" ? p : p.poder_nome ?? p.poder ?? p.label ?? String(p);
+                    return <option key={val} value={val}>{label}</option>;
+                  })}
+                </select>
+              </div>
+              {/* Categoria */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Categoria</label>
+                <select value={filtros.categoria} onChange={e => setFiltros(f => ({ ...f, categoria: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+                  <option value="">Todas</option>
+                  {opcoesFiltros?.categorias?.map((c: any) => {
+                    const val = typeof c === "string" ? c : c.categoria ?? c.value ?? String(c);
+                    const label = typeof c === "string" ? c : c.categoria_nome ?? c.categoria ?? c.label ?? String(c);
+                    return <option key={val} value={val}>{label}</option>;
+                  })}
+                </select>
+              </div>
+              {/* Valor mín */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Valor mín</label>
+                <input
+                  type="number" value={filtros.valor_min}
+                  onChange={e => setFiltros(f => ({ ...f, valor_min: e.target.value }))}
+                  placeholder="0"
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              {/* Valor máx */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Valor máx</label>
+                <input
+                  type="number" value={filtros.valor_max}
+                  onChange={e => setFiltros(f => ({ ...f, valor_max: e.target.value }))}
+                  placeholder="999.999.999"
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              {/* Município */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Município</label>
+                <input
+                  value={filtros.municipio}
+                  onChange={e => setFiltros(f => ({ ...f, municipio: e.target.value }))}
+                  placeholder="Ex: Brasília"
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+            {/* Apenas ativos toggle */}
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                type="checkbox" checked={filtros.apenas_ativos}
+                onChange={e => setFiltros(f => ({ ...f, apenas_ativos: e.target.checked }))}
+                className="rounded border"
+              />
+              <span className="text-sm text-muted-foreground">Apenas itens ativos</span>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button onClick={aplicar} className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+                Aplicar
+              </button>
+              <button onClick={limpar} className="rounded-lg border px-5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">
+                Limpar
+              </button>
+            </div>
+          </div>
+        </CollapsibleContent>
       </div>
-      {/* Apenas ativos toggle */}
-      <div className="mt-3 flex items-center gap-2">
-        <input
-          type="checkbox" checked={filtros.apenas_ativos}
-          onChange={e => setFiltros(f => ({ ...f, apenas_ativos: e.target.checked }))}
-          className="rounded border"
-        />
-        <span className="text-sm text-muted-foreground">Apenas itens ativos</span>
-      </div>
-      <div className="mt-4 flex gap-3">
-        <button onClick={aplicar} className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-          Aplicar
-        </button>
-        <button onClick={limpar} className="rounded-lg border px-5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">
-          Limpar
-        </button>
-      </div>
-    </div>
+    </Collapsible>
   );
 
   /* ──────────────── DASHBOARD MODE ──────────────── */
@@ -397,15 +416,6 @@ export default function RadarPage() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setShowFiltros(!showFiltros)}
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <Filter size={16} /> Filtros
-                {filtrosAtivos > 0 && (
-                  <span className="ml-1 rounded-full bg-primary/15 px-1.5 text-xs font-semibold text-primary">{filtrosAtivos}</span>
-                )}
-              </button>
-              <button
                 onClick={() => setModo("lista")}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
@@ -415,7 +425,7 @@ export default function RadarPage() {
           </div>
 
           {/* Filtros */}
-          {showFiltros && filterPanel()}
+          {filterPanel()}
 
           {/* KPI Cards */}
           <motion.div
