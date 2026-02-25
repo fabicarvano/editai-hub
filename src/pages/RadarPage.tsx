@@ -478,7 +478,20 @@ export default function RadarPage() {
                     >
                       {porEsfera.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
-                    <ReTooltip formatter={(v: number) => formatBRLFull(v)} />
+                    <ReTooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload;
+                        const nome = esferas_nomes[d.esfera_nome] || esferas_nomes[d.esfera] || d.esfera_nome || d.esfera;
+                        return (
+                          <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
+                            <p className="mb-1 font-semibold text-foreground">{nome}</p>
+                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total)}</span></p>
+                            <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
+                          </div>
+                        );
+                      }}
+                    />
                     <Legend
                       formatter={(value) => esferas_nomes[value] || value}
                       iconType="circle"
@@ -498,7 +511,19 @@ export default function RadarPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(216,20%,88%)" />
                   <XAxis dataKey="mes_label" tick={{ fontSize: 11 }} />
                   <YAxis tickFormatter={v => formatBRL(v)} tick={{ fontSize: 11 }} />
-                  <ReTooltip formatter={(v: number) => formatBRLFull(v)} />
+                  <ReTooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
+                          <p className="mb-1 font-semibold text-foreground">{d.mes_label}</p>
+                          <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total)}</span></p>
+                          <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
+                        </div>
+                      );
+                    }}
+                  />
                   <Line type="monotone" dataKey="valor_total" stroke="hsl(200,100%,42%)" strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
