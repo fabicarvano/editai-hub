@@ -485,7 +485,7 @@ export default function RadarPage() {
                   <PieChart>
                     <Pie
                       data={porEsfera} dataKey="valor_total" nameKey="esfera_nome" cx="50%" cy="50%"
-                      outerRadius={100} innerRadius={50} paddingAngle={2} label={({ esfera_nome, esfera, percent }) => `${esferas_nomes[esfera_nome] || esferas_nomes[esfera] || esfera_nome || esfera} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100} innerRadius={50} paddingAngle={2} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                     >
                       {porEsfera.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
