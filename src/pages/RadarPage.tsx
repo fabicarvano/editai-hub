@@ -447,7 +447,19 @@ export default function RadarPage() {
                       type="category" dataKey="categoria" width={140} tick={{ fontSize: 11 }}
                       tickFormatter={v => v.length > 22 ? v.slice(0, 20) + "…" : v}
                     />
-                    <ReTooltip formatter={(v: number) => formatBRLFull(v)} />
+                    <ReTooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload;
+                        return (
+                          <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
+                            <p className="mb-1 font-semibold text-foreground">{d.categoria}</p>
+                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total)}</span></p>
+                            <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
+                          </div>
+                        );
+                      }}
+                    />
                     <Bar dataKey="valor_total" fill="hsl(200,100%,42%)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
