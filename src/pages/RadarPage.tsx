@@ -6,6 +6,7 @@ import {
   fetchRadarChat, fetchRadarChatSugestoes,
 } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
+import { motion } from "framer-motion";
 import AppHeader from "@/components/AppHeader";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -417,7 +418,12 @@ export default function RadarPage() {
           {showFiltros && filterPanel()}
 
           {/* KPI Cards */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <motion.div
+            className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
             {carregando ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="rounded-xl border bg-card p-5">
@@ -432,10 +438,15 @@ export default function RadarPage() {
                 <KpiCard label="Ticket Médio" value={formatBRL(kpis?.ticket_medio)} />
               </>
             )}
-          </div>
+          </motion.div>
 
           {/* Charts row */}
-          <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          <motion.div
+            className="mb-6 grid gap-6 lg:grid-cols-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+          >
             {/* Bar chart — Top Categorias */}
             <div className="rounded-xl border bg-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-foreground">Top 10 Categorias</h3>
@@ -500,10 +511,15 @@ export default function RadarPage() {
                 </ResponsiveContainer>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Timeline */}
-          <div className="mb-6 rounded-xl border bg-card p-5">
+          <motion.div
+            className="mb-6 rounded-xl border bg-card p-5"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
             <h3 className="mb-4 text-sm font-semibold text-foreground">Intenção de Compra por Mês — 2026</h3>
             {carregando ? <Skeleton className="h-48 w-full" /> : (
               <ResponsiveContainer width="100%" height={220}>
@@ -528,10 +544,15 @@ export default function RadarPage() {
                 </LineChart>
               </ResponsiveContainer>
             )}
-          </div>
+          </motion.div>
 
           {/* Tables row */}
-          <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          <motion.div
+            className="mb-6 grid gap-6 lg:grid-cols-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.45 }}
+          >
             {/* Ranking UF */}
             <div className="rounded-xl border bg-card">
               <div className="border-b p-4">
@@ -595,10 +616,15 @@ export default function RadarPage() {
                 </table>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Últimas Adições */}
-          <div className="rounded-xl border bg-card">
+          <motion.div
+            className="rounded-xl border bg-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+          >
             <div className="flex items-center justify-between p-4 border-b">
               <div>
                 <h3 className="font-semibold text-foreground">🆕 Últimas Adições</h3>
@@ -645,7 +671,7 @@ export default function RadarPage() {
                 </table>
               </div>
             )}
-          </div>
+          </motion.div>
         </main>
         <RadarChatWidget
           aberto={chatAberto} setAberto={setChatAberto}
