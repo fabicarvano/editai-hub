@@ -11,7 +11,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
+  PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
 } from "recharts";
 import { Filter, List, LayoutDashboard, Download, ChevronLeft, ChevronRight, ChevronsUpDown, ExternalLink, MessageCircle, Send, X, Sparkles } from "lucide-react";
 
@@ -59,6 +59,15 @@ const PIE_COLORS = [
   "hsl(354,70%,54%)", "hsl(270,60%,50%)", "hsl(30,90%,50%)",
 ];
 
+const esferas_nomes: Record<string, string> = {
+  "E": "Estadual",
+  "F": "Federal",
+  "M": "Municipal",
+  "Estadual": "Estadual",
+  "Federal": "Federal",
+  "Municipal": "Municipal",
+};
+
 /* ──────────────── Component ──────────────── */
 
 export default function RadarPage() {
@@ -80,6 +89,8 @@ export default function RadarPage() {
   const [carregando, setCarregando] = useState(true);
   const [carregandoItens, setCarregandoItens] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
+  const [ultimasAdicoes, setUltimasAdicoes] = useState<any[]>([]);
+  const [carregandoAdicoes, setCarregandoAdicoes] = useState(false);
 
   /* ── Chat state ── */
   const [chatAberto, setChatAberto] = useState(false);
@@ -190,10 +201,29 @@ export default function RadarPage() {
     }).catch(() => {});
   }, []);
 
+  const carregarUltimasAdicoes = useCallback(async () => {
+    setCarregandoAdicoes(true);
+    try {
+      const r = await fetchRadarItens({
+        order_by: "data_importacao",
+        order_dir: "DESC",
+        limit: 10,
+        page: 1,
+        apenas_ativos: true,
+      });
+      if (r.success) setUltimasAdicoes(r.data.itens);
+    } catch (e) {
+      console.error("Erro ultimas adicoes:", e);
+    } finally {
+      setCarregandoAdicoes(false);
+    }
+  }, []);
+
   useEffect(() => {
     carregarDashboard(filtrosAplicados);
+    carregarUltimasAdicoes();
     carregarItens(filtrosAplicados, 1, "valor_total_estimado", "DESC");
-  }, [filtrosAplicados, carregarDashboard, carregarItens]);
+  }, [filtrosAplicados, carregarDashboard, carregarItens, carregarUltimasAdicoes]);
 
   useEffect(() => {
     if (modo === "lista") carregarItens(filtrosAplicados, page, orderBy, orderDir);
@@ -387,9 +417,9 @@ export default function RadarPage() {
           {showFiltros && filterPanel()}
 
           {/* KPI Cards */}
-          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {carregando ? (
-              Array.from({ length: 5 }).map((_, i) => (
+              Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="rounded-xl border bg-card p-5">
                   <Skeleton className="mb-2 h-4 w-20" />
                   <Skeleton className="h-7 w-28" />
@@ -399,8 +429,6 @@ export default function RadarPage() {
               <>
                 <KpiCard label="Total Itens" value={kpis?.total_itens?.toLocaleString("pt-BR") ?? "—"} />
                 <KpiCard label="Valor Total" value={formatBRL(kpis?.valor_total)} accent />
-                <KpiCard label="Órgãos Únicos" value={kpis?.total_orgaos?.toLocaleString("pt-BR") ?? "—"} />
-                <KpiCard label="Estados" value={kpis?.total_ufs ?? "—"} />
                 <KpiCard label="Ticket Médio" value={formatBRL(kpis?.ticket_medio)} />
               </>
             )}
@@ -433,12 +461,16 @@ export default function RadarPage() {
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
-                      data={porEsfera} dataKey="valor_total" nameKey="esfera" cx="50%" cy="50%"
-                      outerRadius={100} innerRadius={50} paddingAngle={2} label={({ esfera, percent }) => `${esfera} ${(percent * 100).toFixed(0)}%`}
+                      data={porEsfera} dataKey="valor_total" nameKey="esfera_nome" cx="50%" cy="50%"
+                      outerRadius={100} innerRadius={50} paddingAngle={2} label={({ esfera_nome, esfera, percent }) => `${esferas_nomes[esfera_nome] || esferas_nomes[esfera] || esfera_nome || esfera} ${(percent * 100).toFixed(0)}%`}
                     >
                       {porEsfera.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
                     <ReTooltip formatter={(v: number) => formatBRLFull(v)} />
+                    <Legend
+                      formatter={(value) => esferas_nomes[value] || value}
+                      iconType="circle"
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -528,40 +560,54 @@ export default function RadarPage() {
             </div>
           </div>
 
-          {/* Preview lista */}
+          {/* Últimas Adições */}
           <div className="rounded-xl border bg-card">
-            <div className="flex items-center justify-between border-b p-4">
-              <h3 className="text-sm font-semibold text-foreground">Itens Planejados</h3>
-              <button onClick={() => setModo("lista")} className="text-sm font-medium text-primary hover:underline">
-                Ver lista completa →
-              </button>
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h3 className="font-semibold text-foreground">🆕 Últimas Adições</h3>
+                <p className="text-xs text-muted-foreground">10 itens mais recentemente adicionados ao radar</p>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Órgão</th>
-                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Produto</th>
-                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">UF</th>
-                    <th className="px-4 py-2 text-right font-medium text-muted-foreground">Valor Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {carregando
-                    ? Array.from({ length: 5 }).map((_, i) => (
-                        <tr key={i} className="border-t"><td colSpan={4} className="px-4 py-2"><Skeleton className="h-4 w-full" /></td></tr>
-                      ))
-                    : (itens.length > 0 ? itens : []).slice(0, 5).map((item, i) => (
-                        <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
-                          <td className="max-w-[180px] truncate px-4 py-2 text-foreground" title={item.orgao_entidade}>{item.orgao_entidade}</td>
-                          <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground">{item.pdm_descricao}</td>
-                          <td className="px-4 py-2"><span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{item.uf}</span></td>
-                          <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(item.valor_total_estimado)}</td>
-                        </tr>
-                      ))}
-                </tbody>
-              </table>
-            </div>
+            {carregandoAdicoes ? (
+              <div className="p-4 space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-8 rounded bg-muted animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Órgão</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Produto</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">UF</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Valor Total</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Adicionado em</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ultimasAdicoes.map((item, i) => (
+                      <tr key={item.id || i} className="border-t hover:bg-muted/20">
+                        <td className="px-4 py-2 max-w-[200px] truncate" title={item.orgao_entidade}>
+                          {item.orgao_entidade}
+                        </td>
+                        <td className="px-4 py-2 text-muted-foreground">{item.pdm_descricao || "—"}</td>
+                        <td className="px-4 py-2">
+                          <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-medium">{item.uf}</span>
+                        </td>
+                        <td className="px-4 py-2 text-right font-medium text-primary">
+                          {formatBRL(item.valor_total_estimado)}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-muted-foreground">
+                          {item.data_importacao ? new Date(item.data_importacao).toLocaleDateString("pt-BR") : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </main>
         <RadarChatWidget
