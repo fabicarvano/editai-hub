@@ -25,6 +25,7 @@ interface ItemDetectado {
   titulo_item: string;
   trecho_original: string;
   nivel: number;
+  tipo?: string;
 }
 
 interface ItemFila {
@@ -462,7 +463,8 @@ export default function QuestionamentosPage() {
     const foiGerado = gerados.find((g) => g.numero_item === item.numero_item);
     const estaConfigurando = itemConfigurando?.numero_item === item.numero_item;
 
-    const indentacao = profundidade * 16;
+    const isSecao = item.tipo === 'secao';
+    const indentacao = item.nivel === 1 ? 0 : (item.nivel - 1) * 16;
 
     const corBadge = () => {
       if (foiGerado) return "bg-green-100 text-green-700 border-green-200";
@@ -493,22 +495,24 @@ export default function QuestionamentosPage() {
             {estaExpandido ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
           </button>
 
-          {/* Badge número */}
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded border flex-shrink-0 font-mono ${corBadge()}`}
-            title={item.numero_item.replace(/\.$/, "")}
-          >
-            {item.numero_item.replace(/\.$/, "")}
-          </span>
+          {/* Badge número — oculto para seções */}
+          {!isSecao && (
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded border flex-shrink-0 font-mono ${corBadge()}`}
+              title={item.numero_item.replace(/\.$/, "")}
+            >
+              {item.numero_item.replace(/\.$/, "")}
+            </span>
+          )}
 
           {/* Título */}
           <span
             className={`flex-1 truncate ${
               eNivel1 ? "text-xs font-semibold text-foreground" : item.nivel >= 4 ? "text-[11px] text-muted-foreground" : "text-xs text-foreground"
             }`}
-            title={`${item.numero_item.replace(/\.$/, '')} — ${item.titulo_item}`}
+            title={isSecao ? item.numero_item : `${item.numero_item.replace(/\.$/, '')} — ${item.titulo_item}`}
           >
-            {item.titulo_item}
+            {isSecao ? item.numero_item : item.titulo_item}
           </span>
 
           {/* Status */}
