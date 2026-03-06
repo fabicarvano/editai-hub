@@ -25,6 +25,7 @@ interface ItemDetectado {
   titulo_item: string;
   trecho_original: string;
   nivel: number;
+  tipo?: string;
 }
 
 interface ItemFila {
