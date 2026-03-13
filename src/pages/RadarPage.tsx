@@ -839,7 +839,7 @@ export default function RadarPage() {
                           {formatBRL(item.valor_total_estimado)}
                         </td>
                         <td className="px-4 py-2 text-xs text-muted-foreground">
-                          {item.data_importacao ? new Date(item.data_importacao).toLocaleDateString("pt-BR") : "—"}
+                          {formatDate(item.data_importacao ?? item.data_inclusao_item ?? item.data_atualizacao_item ?? item.created_at)}
                         </td>
                       </tr>
                     ))}
