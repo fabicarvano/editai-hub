@@ -15,7 +15,6 @@ import {
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
 } from "recharts";
 import { Filter, List, LayoutDashboard, Download, ChevronLeft, ChevronRight, ChevronDown, ChevronsUpDown, ExternalLink, MessageCircle, Send, X, Sparkles } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 /* ──────────────── Types ──────────────── */
 
@@ -70,6 +69,124 @@ const esferas_nomes: Record<string, string> = {
   "Municipal": "Municipal",
 };
 
+const ANOS_DISPONIVEIS = ["2025", "2026", "2027"];
+
+/* ──────────────── Item Detail Modal ──────────────── */
+
+function ItemDetalheModal({ item, onClose }: { item: any; onClose: () => void }) {
+  const handleBackdrop = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  const Campo = ({ label, value }: { label: string; value?: string | number | null }) => {
+    if (!value && value !== 0) return null;
+    return (
+      <div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium text-foreground">{String(value)}</p>
+      </div>
+    );
+  };
+
+  const Secao = ({ titulo, children }: { titulo: string; children: React.ReactNode }) => (
+    <div>
+      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{titulo}</h4>
+      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleBackdrop}>
+      <div className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-card shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 rounded-t-2xl border-b bg-card px-6 py-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-muted-foreground">{item.orgao_entidade}</p>
+            <h3 className="mt-1 text-base font-bold text-foreground">
+              {item.pdm_descricao || item.descricao_item || "Item sem descrição"}
+            </h3>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {item.uf && <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{item.uf}</span>}
+              {item.esfera_nome && <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{item.esfera_nome}</span>}
+              {item.poder_nome && <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{item.poder_nome}</span>}
+              {item.categoria_item && <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{item.categoria_item}</span>}
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-6 px-6 py-5">
+          <div className="grid grid-cols-3 gap-4 rounded-xl bg-muted/50 p-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Valor Total</p>
+              <p className="text-lg font-bold text-primary">{formatBRLFull(item.valor_total_estimado)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Valor Unitário</p>
+              <p className="text-lg font-bold text-foreground">{formatBRLFull(item.valor_unitario)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Quantidade</p>
+              <p className="text-lg font-bold text-foreground">
+                {item.quantidade_estimada != null ? `${item.quantidade_estimada?.toLocaleString("pt-BR")} ${item.unidade_medida || ""}` : "—"}
+              </p>
+            </div>
+          </div>
+
+          <Secao titulo="Identificação">
+            <Campo label="Código Item" value={item.codigo_item} />
+            <Campo label="Código Grupo" value={item.codigo_grupo} />
+            <Campo label="Código Classe" value={item.codigo_classe} />
+            <Campo label="Código PDM" value={item.codigo_pdm} />
+            <Campo label="Grupo" value={item.grupo} />
+            <Campo label="Classe" value={item.classe} />
+            <Campo label="PDM" value={item.pdm_descricao} />
+            <Campo label="Categoria" value={item.categoria_item} />
+            <Campo label="Família TIC" value={item.familia_tic} />
+          </Secao>
+
+          <Secao titulo="Órgão / Localização">
+            <Campo label="Órgão" value={item.orgao_entidade} />
+            <Campo label="CNPJ" value={item.cnpj} />
+            <Campo label="UF" value={item.uf} />
+            <Campo label="Município" value={item.municipio} />
+            <Campo label="Esfera" value={item.esfera_nome} />
+            <Campo label="Poder" value={item.poder_nome} />
+            <Campo label="Unidade Suprida" value={item.unidade_suprida} />
+          </Secao>
+
+          <Secao titulo="Datas">
+            <Campo label="Data Desejada" value={formatDate(item.data_desejada)} />
+            <Campo label="Data Importação" value={formatDate(item.data_importacao)} />
+            <Campo label="Data Publicação PCA" value={formatDate(item.data_publicacao_pca)} />
+            <Campo label="Ano" value={item.ano} />
+            <Campo label="Número PCA" value={item.numero_pca} />
+          </Secao>
+
+          <Secao titulo="Contratação">
+            <Campo label="Tipo Contratação" value={item.tipo_contratacao} />
+            <Campo label="Renovação" value={item.renovacao} />
+            <Campo label="Ação Orçamentária" value={item.acao_orcamentaria} />
+            <Campo label="Justificativa" value={item.justificativa} />
+            <Campo label="Status" value={item.ativo ? "Ativo" : "Inativo"} />
+          </Secao>
+
+          {item.link_pca && (
+            <a
+              href={item.link_pca} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <ExternalLink size={14} />
+              Ver no PNCP
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ──────────────── Component ──────────────── */
 
 export default function RadarPage() {
@@ -93,6 +210,7 @@ export default function RadarPage() {
   const [showFiltros, setShowFiltros] = useState(false);
   const [ultimasAdicoes, setUltimasAdicoes] = useState<any[]>([]);
   const [carregandoAdicoes, setCarregandoAdicoes] = useState(false);
+  const [itemSelecionado, setItemSelecionado] = useState<any>(null);
 
   /* ── Chat state ── */
   const [chatAberto, setChatAberto] = useState(false);
@@ -206,12 +324,13 @@ export default function RadarPage() {
   const carregarUltimasAdicoes = useCallback(async () => {
     setCarregandoAdicoes(true);
     try {
+      const params = buildParams({ ...filtrosVazios, apenas_ativos: true });
       const r = await fetchRadarItens({
+        ...params,
         order_by: "data_importacao",
         order_dir: "DESC",
         limit: 10,
         page: 1,
-        apenas_ativos: true,
       });
       if (r.success) setUltimasAdicoes(r.data.itens);
     } catch (e) {
@@ -298,6 +417,15 @@ export default function RadarPage() {
             >
               <div className="px-5 pb-5">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {/* Ano */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Ano</label>
+                    <select value={filtros.ano} onChange={e => setFiltros(f => ({ ...f, ano: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+                      {ANOS_DISPONIVEIS.map(a => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
+                  </div>
                   {/* Busca */}
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">Busca</label>
@@ -340,6 +468,18 @@ export default function RadarPage() {
                       {opcoesFiltros?.poderes?.map((p: any) => {
                         const val = typeof p === "string" ? p : p.poder ?? p.value ?? String(p);
                         const label = typeof p === "string" ? p : p.poder_nome ?? p.poder ?? p.label ?? String(p);
+                        return <option key={val} value={val}>{label}</option>;
+                      })}
+                    </select>
+                  </div>
+                  {/* Família TIC */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Família TIC</label>
+                    <select value={filtros.familia} onChange={e => setFiltros(f => ({ ...f, familia: e.target.value }))} className="w-full rounded-lg border bg-background px-3 py-2 text-sm">
+                      <option value="">Todas</option>
+                      {opcoesFiltros?.familias?.map((fam: any) => {
+                        const val = typeof fam === "string" ? fam : fam.familia_tic ?? fam.value ?? String(fam);
+                        const label = typeof fam === "string" ? fam : fam.familia_tic ?? fam.label ?? String(fam);
                         return <option key={val} value={val}>{label}</option>;
                       })}
                     </select>
@@ -425,7 +565,7 @@ export default function RadarPage() {
             <div>
               <h1 className="text-2xl font-bold text-foreground">🎯 Radar de Compras do Governo</h1>
               <p className="text-sm text-muted-foreground">
-                Planejamento anual de compras de TI · {kpis?.total_itens?.toLocaleString("pt-BR") ?? "..."} itens
+                Planejamento anual de compras de TI · {kpis?.total_itens?.toLocaleString("pt-BR") ?? "..."} itens · {filtrosAplicados.ano}
               </p>
             </div>
             <div className="flex gap-2">
@@ -489,13 +629,13 @@ export default function RadarPage() {
                         return (
                           <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
                             <p className="mb-1 font-semibold text-foreground">{d.categoria}</p>
-                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total)}</span></p>
+                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
                             <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                           </div>
                         );
                       }}
                     />
-                    <Bar dataKey="valor_total" fill="hsl(200,100%,42%)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="valor_total_estimado" fill="hsl(200,100%,42%)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -508,7 +648,7 @@ export default function RadarPage() {
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
-                      data={porEsfera} dataKey="valor_total" nameKey="esfera_nome" cx="50%" cy="50%"
+                      data={porEsfera} dataKey="valor_total_estimado" nameKey="esfera_nome" cx="50%" cy="50%"
                       outerRadius={100} innerRadius={50} paddingAngle={2} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                     >
                       {porEsfera.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
@@ -521,7 +661,7 @@ export default function RadarPage() {
                         return (
                           <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
                             <p className="mb-1 font-semibold text-foreground">{nome}</p>
-                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total)}</span></p>
+                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
                             <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                           </div>
                         );
@@ -544,12 +684,12 @@ export default function RadarPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <h3 className="mb-4 text-sm font-semibold text-foreground">Intenção de Compra por Mês — 2026</h3>
+            <h3 className="mb-4 text-sm font-semibold text-foreground">Intenção de Compra por Mês — {filtrosAplicados.ano}</h3>
             {carregando ? <Skeleton className="h-48 w-full" /> : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={timeline} margin={{ left: 10, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(216,20%,88%)" />
-                  <XAxis dataKey="mes_label" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="ano_mes" tick={{ fontSize: 11 }} />
                   <YAxis tickFormatter={v => formatBRL(v)} tick={{ fontSize: 11 }} />
                   <ReTooltip
                     content={({ active, payload }) => {
@@ -557,14 +697,14 @@ export default function RadarPage() {
                       const d = payload[0].payload;
                       return (
                         <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
-                          <p className="mb-1 font-semibold text-foreground">{d.mes_label}</p>
-                          <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total)}</span></p>
+                          <p className="mb-1 font-semibold text-foreground">{d.ano_mes}</p>
+                          <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
                           <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                         </div>
                       );
                     }}
                   />
-                  <Line type="monotone" dataKey="valor_total" stroke="hsl(200,100%,42%)" strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="valor_total_estimado" stroke="hsl(200,100%,42%)" strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -600,7 +740,7 @@ export default function RadarPage() {
                           <tr key={u.uf} className="border-t hover:bg-muted/30 transition-colors">
                             <td className="px-4 py-2 font-medium text-foreground">{u.uf}</td>
                             <td className="px-4 py-2 text-right text-muted-foreground">{u.total_itens?.toLocaleString("pt-BR")}</td>
-                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(u.valor_total)}</td>
+                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(u.valor_total_estimado)}</td>
                           </tr>
                         ))}
                   </tbody>
@@ -633,7 +773,7 @@ export default function RadarPage() {
                             <td className="max-w-[200px] truncate px-4 py-2 text-foreground" title={o.orgao_entidade}>{o.orgao_entidade}</td>
                             <td className="px-4 py-2"><span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{o.uf}</span></td>
                             <td className="px-4 py-2 text-muted-foreground">{o.esfera_nome}</td>
-                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(o.valor_total)}</td>
+                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(o.valor_total_estimado)}</td>
                           </tr>
                         ))}
                   </tbody>
@@ -675,7 +815,7 @@ export default function RadarPage() {
                   </thead>
                   <tbody>
                     {ultimasAdicoes.map((item, i) => (
-                      <tr key={item.id || i} className="border-t hover:bg-muted/20">
+                      <tr key={item.id || i} className="border-t hover:bg-muted/20 cursor-pointer" onClick={() => setItemSelecionado(item)}>
                         <td className="px-4 py-2 max-w-[200px] truncate" title={item.orgao_entidade}>
                           {item.orgao_entidade}
                         </td>
@@ -703,6 +843,9 @@ export default function RadarPage() {
           carregando={chatCarregando} sugestoes={chatSugestoes}
           enviar={enviarChat} endRef={chatEndRef}
         />
+        {itemSelecionado && (
+          <ItemDetalheModal item={itemSelecionado} onClose={() => setItemSelecionado(null)} />
+        )}
       </div>
     );
   }
@@ -739,7 +882,7 @@ export default function RadarPage() {
             <LayoutDashboard size={16} /> Dashboard
           </button>
           <h1 className="text-xl font-bold text-foreground">
-            📋 Itens Planejados ({paginacao.total.toLocaleString("pt-BR")})
+            📋 Itens Planejados ({paginacao.total.toLocaleString("pt-BR")}) — {filtrosAplicados.ano}
           </h1>
           <button
             onClick={exportarCSV}
@@ -773,8 +916,6 @@ export default function RadarPage() {
                 <th className="px-4 py-2 text-left font-medium text-muted-foreground">UF</th>
                 <th className="px-4 py-2 text-left font-medium text-muted-foreground">Esfera</th>
                 <th className="px-4 py-2 text-left font-medium text-muted-foreground">Poder</th>
-                {sortHeader("Qtd", "quantidade_estimada")}
-                {sortHeader("Vlr Unit.", "valor_unitario")}
                 {sortHeader("Vlr Total", "valor_total_estimado")}
                 {sortHeader("Data Desejada", "data_desejada")}
                 <th className="px-4 py-2 text-center font-medium text-muted-foreground">Link</th>
@@ -784,28 +925,40 @@ export default function RadarPage() {
               {carregandoItens
                 ? Array.from({ length: 10 }).map((_, i) => (
                     <tr key={i} className="border-t">
-                      <td colSpan={11} className="px-4 py-3"><Skeleton className="h-4 w-full" /></td>
+                      <td colSpan={9} className="px-4 py-3"><Skeleton className="h-4 w-full" /></td>
                     </tr>
                   ))
                 : itens.map(item => (
-                    <tr key={item.id} className="border-t hover:bg-muted/30 transition-colors">
+                    <tr
+                      key={item.id}
+                      className="border-t hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.closest("a")) return;
+                        setItemSelecionado(item);
+                      }}
+                    >
                       <td className="max-w-[180px] truncate px-4 py-2 text-foreground" title={item.orgao_entidade}>
                         {item.orgao_entidade?.slice(0, 30)}{item.orgao_entidade?.length > 30 ? "…" : ""}
                       </td>
                       <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground" title={item.pdm_descricao}>{item.pdm_descricao}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{item.categoria}</td>
+                      <td className="px-4 py-2 text-muted-foreground">{item.categoria_item || item.categoria || "—"}</td>
                       <td className="px-4 py-2">
                         <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{item.uf}</span>
                       </td>
                       <td className="px-4 py-2 text-muted-foreground">{item.esfera_nome}</td>
                       <td className="px-4 py-2 text-muted-foreground">{item.poder_nome}</td>
-                      <td className="px-4 py-2 text-right text-muted-foreground">{item.quantidade_estimada?.toLocaleString("pt-BR")}</td>
-                      <td className="px-4 py-2 text-right text-muted-foreground">{formatBRLFull(item.valor_unitario)}</td>
                       <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(item.valor_total_estimado)}</td>
                       <td className="px-4 py-2 text-muted-foreground">{formatDate(item.data_desejada)}</td>
                       <td className="px-4 py-2 text-center">
                         {item.link_pca && (
-                          <a href={item.link_pca} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
+                          <a
+                            href={item.link_pca}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:text-primary/80 transition-colors"
+                            onClick={e => e.stopPropagation()}
+                          >
                             <ExternalLink size={14} />
                           </a>
                         )}
@@ -843,6 +996,9 @@ export default function RadarPage() {
         carregando={chatCarregando} sugestoes={chatSugestoes}
         enviar={enviarChat} endRef={chatEndRef}
       />
+      {itemSelecionado && (
+        <ItemDetalheModal item={itemSelecionado} onClose={() => setItemSelecionado(null)} />
+      )}
     </div>
   );
 }
