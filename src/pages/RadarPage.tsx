@@ -285,17 +285,47 @@ export default function RadarPage() {
         fetchRadarTimeline(params),
         fetchRadarTopOrgaos(params),
       ]);
-      console.log("🔍 [Radar Debug] timeline sample:", tlR.data?.slice?.(0, 2));
-      console.log("🔍 [Radar Debug] porEsfera sample:", esfR.data?.slice?.(0, 2));
-      console.log("🔍 [Radar Debug] porCategoria sample:", catR.data?.slice?.(0, 2));
-      console.log("🔍 [Radar Debug] porUf sample:", ufR.data?.slice?.(0, 2));
-      console.log("🔍 [Radar Debug] kpis:", kpisR.data);
+      console.log("🔍 [Radar Debug] timeline FULL response:", JSON.stringify(tlR));
+      console.log("🔍 [Radar Debug] porEsfera FULL response:", JSON.stringify(esfR));
       if (kpisR.success) setKpis(kpisR.data);
-      if (catR.success) setPorCategoria(catR.data);
-      if (esfR.success) setPorEsfera(esfR.data);
-      if (ufR.success) setPorUf(ufR.data);
-      if (tlR.success) setTimeline(tlR.data);
-      if (orgR.success) setTopOrgaos(orgR.data);
+      if (catR.success) {
+        const catData = Array.isArray(catR.data) ? catR.data
+          : Array.isArray(catR.data?.itens) ? catR.data.itens
+          : Array.isArray(catR.data?.data) ? catR.data.data
+          : [];
+        setPorCategoria(catData);
+      }
+      if (esfR.success) {
+        const esfData = Array.isArray(esfR.data) ? esfR.data
+          : Array.isArray(esfR.data?.itens) ? esfR.data.itens
+          : Array.isArray(esfR.data?.data) ? esfR.data.data
+          : [];
+        console.log("🔍 [Radar Debug] porEsfera parsed:", esfData.slice(0, 3));
+        setPorEsfera(esfData);
+      }
+      if (ufR.success) {
+        const ufData = Array.isArray(ufR.data) ? ufR.data
+          : Array.isArray(ufR.data?.itens) ? ufR.data.itens
+          : Array.isArray(ufR.data?.data) ? ufR.data.data
+          : [];
+        setPorUf(ufData);
+      }
+      if (tlR.success) {
+        const tlData = Array.isArray(tlR.data) ? tlR.data
+          : Array.isArray(tlR.data?.itens) ? tlR.data.itens
+          : Array.isArray(tlR.data?.data) ? tlR.data.data
+          : Array.isArray(tlR.data?.timeline) ? tlR.data.timeline
+          : [];
+        console.log("🔍 [Radar Debug] timeline parsed:", tlData.slice(0, 3));
+        setTimeline(tlData);
+      }
+      if (orgR.success) {
+        const orgData = Array.isArray(orgR.data) ? orgR.data
+          : Array.isArray(orgR.data?.itens) ? orgR.data.itens
+          : Array.isArray(orgR.data?.data) ? orgR.data.data
+          : [];
+        setTopOrgaos(orgData);
+      }
     } catch {
       /* toast could go here */
     } finally {
