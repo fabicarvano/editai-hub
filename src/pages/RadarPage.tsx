@@ -689,9 +689,9 @@ export default function RadarPage() {
             <h3 className="mb-4 text-sm font-semibold text-foreground">Intenção de Compra por Mês — {filtrosAplicados.ano}</h3>
             {carregando ? <Skeleton className="h-48 w-full" /> : (
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={timeline} margin={{ left: 10, right: 10 }}>
+                <LineChart data={timeline.map(d => ({ ...d, valor_total_estimado: d.valor_total_estimado ?? d.valor_total ?? 0, ano_mes: d.ano_mes ?? d.mes_label }))} margin={{ left: 10, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(216,20%,88%)" />
-                  <XAxis dataKey="ano_mes" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="ano_mes" tick={{ fontSize: 11 }} tickFormatter={v => v ? String(v).slice(5) : v} />
                   <YAxis tickFormatter={v => formatBRL(v)} tick={{ fontSize: 11 }} />
                   <ReTooltip
                     content={({ active, payload }) => {
@@ -699,8 +699,8 @@ export default function RadarPage() {
                       const d = payload[0].payload;
                       return (
                         <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
-                          <p className="mb-1 font-semibold text-foreground">{d.ano_mes}</p>
-                          <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
+                          <p className="mb-1 font-semibold text-foreground">{d.ano_mes ?? d.mes_label}</p>
+                          <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado ?? d.valor_total)}</span></p>
                           <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                         </div>
                       );
