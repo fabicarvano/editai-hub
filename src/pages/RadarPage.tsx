@@ -773,7 +773,7 @@ export default function RadarPage() {
                             <td className="max-w-[200px] truncate px-4 py-2 text-foreground" title={o.orgao_entidade}>{o.orgao_entidade}</td>
                             <td className="px-4 py-2"><span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{o.uf}</span></td>
                             <td className="px-4 py-2 text-muted-foreground">{o.esfera_nome}</td>
-                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(o.valor_total_estimado)}</td>
+                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(o.valor_total_estimado ?? o.valor_total)}</td>
                           </tr>
                         ))}
                   </tbody>
