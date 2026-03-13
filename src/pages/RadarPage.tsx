@@ -740,7 +740,7 @@ export default function RadarPage() {
                           <tr key={u.uf} className="border-t hover:bg-muted/30 transition-colors">
                             <td className="px-4 py-2 font-medium text-foreground">{u.uf}</td>
                             <td className="px-4 py-2 text-right text-muted-foreground">{u.total_itens?.toLocaleString("pt-BR")}</td>
-                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(u.valor_total_estimado)}</td>
+                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(u.valor_total_estimado ?? u.valor_total)}</td>
                           </tr>
                         ))}
                   </tbody>
