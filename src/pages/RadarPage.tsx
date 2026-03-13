@@ -650,7 +650,7 @@ export default function RadarPage() {
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
-                      data={porEsfera} dataKey="valor_total_estimado" nameKey="esfera_nome" cx="50%" cy="50%"
+                      data={porEsfera.map(d => ({ ...d, valor_total_estimado: d.valor_total_estimado ?? d.valor_total ?? 0 }))} dataKey="valor_total_estimado" nameKey="esfera_nome" cx="50%" cy="50%"
                       outerRadius={100} innerRadius={50} paddingAngle={2} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                     >
                       {porEsfera.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
@@ -663,7 +663,7 @@ export default function RadarPage() {
                         return (
                           <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
                             <p className="mb-1 font-semibold text-foreground">{nome}</p>
-                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
+                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado ?? d.valor_total)}</span></p>
                             <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                           </div>
                         );
