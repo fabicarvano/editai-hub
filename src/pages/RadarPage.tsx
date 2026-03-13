@@ -285,6 +285,11 @@ export default function RadarPage() {
         fetchRadarTimeline(params),
         fetchRadarTopOrgaos(params),
       ]);
+      console.log("🔍 [Radar Debug] timeline sample:", tlR.data?.slice?.(0, 2));
+      console.log("🔍 [Radar Debug] porEsfera sample:", esfR.data?.slice?.(0, 2));
+      console.log("🔍 [Radar Debug] porCategoria sample:", catR.data?.slice?.(0, 2));
+      console.log("🔍 [Radar Debug] porUf sample:", ufR.data?.slice?.(0, 2));
+      console.log("🔍 [Radar Debug] kpis:", kpisR.data);
       if (kpisR.success) setKpis(kpisR.data);
       if (catR.success) setPorCategoria(catR.data);
       if (esfR.success) setPorEsfera(esfR.data);
