@@ -741,7 +741,20 @@ export default function RadarPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <h3 className="mb-4 text-sm font-semibold text-foreground">Intenção de Compra por Mês — {filtrosAplicados.ano}</h3>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h3 className="text-sm font-semibold text-foreground">
+                Intenção de Compra por Mês — {timelineAno}
+              </h3>
+              <select
+                value={timelineAno}
+                onChange={e => setTimelineAno(e.target.value)}
+                className="rounded-lg border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {ANOS_DISPONIVEIS.map(a => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </div>
             {carregando ? <Skeleton className="h-48 w-full" /> : timeline.length === 0 ? (
               <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
                 Sem dados de timeline para o período selecionado
