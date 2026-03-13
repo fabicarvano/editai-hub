@@ -629,13 +629,15 @@ export default function RadarPage() {
                         return (
                           <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
                             <p className="mb-1 font-semibold text-foreground">{d.categoria}</p>
-                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
+                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado ?? d.valor_total)}</span></p>
                             <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                           </div>
                         );
                       }}
                     />
-                    <Bar dataKey="valor_total_estimado" fill="hsl(200,100%,42%)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="valor_total_estimado" fill="hsl(200,100%,42%)" radius={[0, 4, 4, 0]}
+                      data={porCategoria.map(d => ({ ...d, valor_total_estimado: d.valor_total_estimado ?? d.valor_total }))}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}
