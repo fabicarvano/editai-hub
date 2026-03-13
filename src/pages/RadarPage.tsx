@@ -211,6 +211,7 @@ export default function RadarPage() {
   const [ultimasAdicoes, setUltimasAdicoes] = useState<any[]>([]);
   const [carregandoAdicoes, setCarregandoAdicoes] = useState(false);
   const [itemSelecionado, setItemSelecionado] = useState<any>(null);
+  const [timelineAno, setTimelineAno] = useState<string>("2026");
 
   /* ── Chat state ── */
   const [chatAberto, setChatAberto] = useState(false);
