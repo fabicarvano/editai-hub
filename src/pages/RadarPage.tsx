@@ -402,6 +402,10 @@ export default function RadarPage() {
   }, [filtrosAplicados, carregarDashboard, carregarItens, carregarUltimasAdicoes]);
 
   useEffect(() => {
+    carregarTimeline(filtrosAplicados, timelineAno);
+  }, [filtrosAplicados, timelineAno, carregarTimeline]);
+
+  useEffect(() => {
     if (modo === "lista") carregarItens(filtrosAplicados, page, orderBy, orderDir);
   }, [modo, filtrosAplicados, page, orderBy, orderDir, carregarItens]);
 
