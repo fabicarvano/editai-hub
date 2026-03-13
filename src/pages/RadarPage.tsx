@@ -338,6 +338,7 @@ export default function RadarPage() {
         page: 1,
       });
       if (r.success) setUltimasAdicoes(r.data.itens);
+      console.log("🔍 [Radar Debug] ultimasAdicoes sample:", r.data?.itens?.slice?.(0, 1));
     } catch (e) {
       console.error("Erro ultimas adicoes:", e);
     } finally {
