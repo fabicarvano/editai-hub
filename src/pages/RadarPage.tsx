@@ -629,13 +629,15 @@ export default function RadarPage() {
                         return (
                           <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
                             <p className="mb-1 font-semibold text-foreground">{d.categoria}</p>
-                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
+                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado ?? d.valor_total)}</span></p>
                             <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                           </div>
                         );
                       }}
                     />
-                    <Bar dataKey="valor_total_estimado" fill="hsl(200,100%,42%)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="valor_total_estimado" fill="hsl(200,100%,42%)" radius={[0, 4, 4, 0]}
+                      data={porCategoria.map(d => ({ ...d, valor_total_estimado: d.valor_total_estimado ?? d.valor_total }))}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -648,7 +650,7 @@ export default function RadarPage() {
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
-                      data={porEsfera} dataKey="valor_total_estimado" nameKey="esfera_nome" cx="50%" cy="50%"
+                      data={porEsfera.map(d => ({ ...d, valor_total_estimado: d.valor_total_estimado ?? d.valor_total ?? 0 }))} dataKey="valor_total_estimado" nameKey="esfera_nome" cx="50%" cy="50%"
                       outerRadius={100} innerRadius={50} paddingAngle={2} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                     >
                       {porEsfera.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
@@ -661,7 +663,7 @@ export default function RadarPage() {
                         return (
                           <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
                             <p className="mb-1 font-semibold text-foreground">{nome}</p>
-                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
+                            <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado ?? d.valor_total)}</span></p>
                             <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                           </div>
                         );
@@ -687,9 +689,9 @@ export default function RadarPage() {
             <h3 className="mb-4 text-sm font-semibold text-foreground">Intenção de Compra por Mês — {filtrosAplicados.ano}</h3>
             {carregando ? <Skeleton className="h-48 w-full" /> : (
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={timeline} margin={{ left: 10, right: 10 }}>
+                <LineChart data={timeline.map(d => ({ ...d, valor_total_estimado: d.valor_total_estimado ?? d.valor_total ?? 0, ano_mes: d.ano_mes ?? d.mes_label }))} margin={{ left: 10, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(216,20%,88%)" />
-                  <XAxis dataKey="ano_mes" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="ano_mes" tick={{ fontSize: 11 }} tickFormatter={v => v ? String(v).slice(5) : v} />
                   <YAxis tickFormatter={v => formatBRL(v)} tick={{ fontSize: 11 }} />
                   <ReTooltip
                     content={({ active, payload }) => {
@@ -697,8 +699,8 @@ export default function RadarPage() {
                       const d = payload[0].payload;
                       return (
                         <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
-                          <p className="mb-1 font-semibold text-foreground">{d.ano_mes}</p>
-                          <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado)}</span></p>
+                          <p className="mb-1 font-semibold text-foreground">{d.ano_mes ?? d.mes_label}</p>
+                          <p className="text-muted-foreground">Valor: <span className="font-medium text-foreground">{formatBRLFull(d.valor_total_estimado ?? d.valor_total)}</span></p>
                           <p className="text-muted-foreground">Itens: <span className="font-medium text-foreground">{d.total_itens?.toLocaleString("pt-BR") ?? "—"}</span></p>
                         </div>
                       );
@@ -740,7 +742,7 @@ export default function RadarPage() {
                           <tr key={u.uf} className="border-t hover:bg-muted/30 transition-colors">
                             <td className="px-4 py-2 font-medium text-foreground">{u.uf}</td>
                             <td className="px-4 py-2 text-right text-muted-foreground">{u.total_itens?.toLocaleString("pt-BR")}</td>
-                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(u.valor_total_estimado)}</td>
+                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(u.valor_total_estimado ?? u.valor_total)}</td>
                           </tr>
                         ))}
                   </tbody>
@@ -773,7 +775,7 @@ export default function RadarPage() {
                             <td className="max-w-[200px] truncate px-4 py-2 text-foreground" title={o.orgao_entidade}>{o.orgao_entidade}</td>
                             <td className="px-4 py-2"><span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{o.uf}</span></td>
                             <td className="px-4 py-2 text-muted-foreground">{o.esfera_nome}</td>
-                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(o.valor_total_estimado)}</td>
+                            <td className="px-4 py-2 text-right font-medium text-foreground">{formatBRL(o.valor_total_estimado ?? o.valor_total)}</td>
                           </tr>
                         ))}
                   </tbody>
