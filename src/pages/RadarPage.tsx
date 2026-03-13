@@ -693,7 +693,11 @@ export default function RadarPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             <h3 className="mb-4 text-sm font-semibold text-foreground">Intenção de Compra por Mês — {filtrosAplicados.ano}</h3>
-            {carregando ? <Skeleton className="h-48 w-full" /> : (
+            {carregando ? <Skeleton className="h-48 w-full" /> : timeline.length === 0 ? (
+              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                Sem dados de timeline para o período selecionado
+              </div>
+            ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={timeline.map(d => ({ ...d, valor_total_estimado: d.valor_total_estimado ?? d.valor_total ?? 0, ano_mes: d.ano_mes ?? d.mes_label }))} margin={{ left: 10, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(216,20%,88%)" />
