@@ -357,6 +357,24 @@ export default function RadarPage() {
     }).catch(() => {});
   }, []);
 
+  const carregarTimeline = useCallback(async (f: FiltrosRadar, ano: string) => {
+    const params = buildParams({ ...f, ano });
+    try {
+      const tlR = await fetchRadarTimeline(params);
+      console.log("🔍 timeline response:", JSON.stringify(tlR));
+      if (tlR.success) {
+        const tlData = Array.isArray(tlR.data) ? tlR.data
+          : Array.isArray(tlR.data?.itens) ? tlR.data.itens
+          : Array.isArray(tlR.data?.data) ? tlR.data.data
+          : Array.isArray(tlR.data?.timeline) ? tlR.data.timeline
+          : [];
+        setTimeline(tlData);
+      }
+    } catch (e) {
+      console.error("Erro timeline:", e);
+    }
+  }, []);
+
   const carregarUltimasAdicoes = useCallback(async () => {
     setCarregandoAdicoes(true);
     try {
