@@ -285,6 +285,11 @@ export default function RadarPage() {
         fetchRadarTimeline(params),
         fetchRadarTopOrgaos(params),
       ]);
+      console.log("🔍 [Radar Debug] timeline sample:", tlR.data?.slice?.(0, 2));
+      console.log("🔍 [Radar Debug] porEsfera sample:", esfR.data?.slice?.(0, 2));
+      console.log("🔍 [Radar Debug] porCategoria sample:", catR.data?.slice?.(0, 2));
+      console.log("🔍 [Radar Debug] porUf sample:", ufR.data?.slice?.(0, 2));
+      console.log("🔍 [Radar Debug] kpis:", kpisR.data);
       if (kpisR.success) setKpis(kpisR.data);
       if (catR.success) setPorCategoria(catR.data);
       if (esfR.success) setPorEsfera(esfR.data);
@@ -333,6 +338,7 @@ export default function RadarPage() {
         page: 1,
       });
       if (r.success) setUltimasAdicoes(r.data.itens);
+      console.log("🔍 [Radar Debug] ultimasAdicoes sample:", r.data?.itens?.slice?.(0, 1));
     } catch (e) {
       console.error("Erro ultimas adicoes:", e);
     } finally {
@@ -687,7 +693,11 @@ export default function RadarPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             <h3 className="mb-4 text-sm font-semibold text-foreground">Intenção de Compra por Mês — {filtrosAplicados.ano}</h3>
-            {carregando ? <Skeleton className="h-48 w-full" /> : (
+            {carregando ? <Skeleton className="h-48 w-full" /> : timeline.length === 0 ? (
+              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                Sem dados de timeline para o período selecionado
+              </div>
+            ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={timeline.map(d => ({ ...d, valor_total_estimado: d.valor_total_estimado ?? d.valor_total ?? 0, ano_mes: d.ano_mes ?? d.mes_label }))} margin={{ left: 10, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(216,20%,88%)" />
@@ -829,7 +839,7 @@ export default function RadarPage() {
                           {formatBRL(item.valor_total_estimado)}
                         </td>
                         <td className="px-4 py-2 text-xs text-muted-foreground">
-                          {item.data_importacao ? new Date(item.data_importacao).toLocaleDateString("pt-BR") : "—"}
+                          {formatDate(item.data_importacao ?? item.data_inclusao_item ?? item.data_atualizacao_item ?? item.created_at)}
                         </td>
                       </tr>
                     ))}
