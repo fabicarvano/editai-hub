@@ -885,8 +885,8 @@ export default function RadarPage() {
                   <tbody>
                     {ultimasAdicoes.map((item, i) => (
                       <tr key={item.id || i} className="border-t hover:bg-muted/20 cursor-pointer" onClick={() => setItemSelecionado(item)}>
-                        <td className="px-4 py-2 max-w-[200px] truncate" title={item.orgao_entidade}>
-                          {item.orgao_entidade}
+                        <td className="px-4 py-2 max-w-[200px] truncate" title={item.unidade_nome || item.orgao_entidade}>
+                          {item.unidade_nome || item.orgao_entidade}
                         </td>
                         <td className="px-4 py-2 text-muted-foreground">
                           {item.pdm_descricao
@@ -1013,8 +1013,8 @@ export default function RadarPage() {
                         setItemSelecionado(item);
                       }}
                     >
-                      <td className="max-w-[180px] truncate px-4 py-2 text-foreground" title={item.orgao_entidade}>
-                        {item.orgao_entidade?.slice(0, 30)}{item.orgao_entidade?.length > 30 ? "…" : ""}
+                      <td className="max-w-[180px] truncate px-4 py-2 text-foreground" title={item.unidade_nome || item.orgao_entidade}>
+                        {(item.unidade_nome || item.orgao_entidade)?.slice(0, 30)}{(item.unidade_nome || item.orgao_entidade)?.length > 30 ? "…" : ""}
                       </td>
                       <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground" title={item.pdm_descricao}>{item.pdm_descricao}</td>
                       <td className="px-4 py-2 text-muted-foreground">{item.categoria_item || item.categoria || "—"}</td>
