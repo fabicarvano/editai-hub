@@ -286,8 +286,6 @@ export default function RadarPage() {
         fetchRadarTimeline(params),
         fetchRadarTopOrgaos(params),
       ]);
-      console.log("🔍 [Radar Debug] timeline FULL response:", JSON.stringify(tlR));
-      console.log("🔍 [Radar Debug] porEsfera FULL response:", JSON.stringify(esfR));
       if (kpisR.success) setKpis(kpisR.data);
       if (catR.success) {
         const catData = Array.isArray(catR.data) ? catR.data
@@ -301,7 +299,6 @@ export default function RadarPage() {
           : Array.isArray(esfR.data?.itens) ? esfR.data.itens
           : Array.isArray(esfR.data?.data) ? esfR.data.data
           : [];
-        console.log("🔍 [Radar Debug] porEsfera parsed:", esfData.slice(0, 3));
         setPorEsfera(esfData);
       }
       if (ufR.success) {
@@ -317,7 +314,6 @@ export default function RadarPage() {
           : Array.isArray(tlR.data?.data) ? tlR.data.data
           : Array.isArray(tlR.data?.timeline) ? tlR.data.timeline
           : [];
-        console.log("🔍 [Radar Debug] timeline parsed:", tlData.slice(0, 3));
         setTimeline(tlData);
       }
       if (orgR.success) {
@@ -361,7 +357,6 @@ export default function RadarPage() {
     const params = buildParams({ ...f, ano });
     try {
       const tlR = await fetchRadarTimeline(params);
-      console.log("🔍 timeline response:", JSON.stringify(tlR));
       if (tlR.success) {
         const tlData = Array.isArray(tlR.data) ? tlR.data
           : Array.isArray(tlR.data?.itens) ? tlR.data.itens
@@ -387,7 +382,6 @@ export default function RadarPage() {
         page: 1,
       });
       if (r.success) setUltimasAdicoes(r.data.itens);
-      console.log("🔍 [Radar Debug] ultimasAdicoes sample:", r.data?.itens?.slice?.(0, 1));
     } catch (e) {
       console.error("Erro ultimas adicoes:", e);
     } finally {
@@ -657,7 +651,7 @@ export default function RadarPage() {
             ) : (
               <>
                 <KpiCard label="Total Itens" value={kpis?.total_itens?.toLocaleString("pt-BR") ?? "—"} />
-                <KpiCard label="Valor Total" value={formatBRL(kpis?.valor_total)} accent />
+                <KpiCard label="Valor Total" value={formatBRL(kpis?.valor_total_estimado ?? kpis?.valor_total)} accent />
                 <KpiCard label="Ticket Médio" value={formatBRL(kpis?.ticket_medio)} />
               </>
             )}
