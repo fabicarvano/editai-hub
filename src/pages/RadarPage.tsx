@@ -159,7 +159,7 @@ function ItemDetalheModal({ item, onClose }: { item: any; onClose: () => void })
           <Secao titulo="Datas">
             <Campo label="Data Desejada" value={formatDate(item.data_desejada)} />
             <Campo label="Data Importação" value={formatDate(item.data_importacao)} />
-            <Campo label="Data Publicação PCA" value={formatDate(item.data_publicacao_pca)} />
+            <Campo label="Data Publicação PNCP" value={formatDate(item.data_publicacao_pncp)} />
             <Campo label="Ano" value={item.ano} />
             <Campo label="Número PCA" value={item.numero_pca} />
           </Secao>
@@ -169,7 +169,6 @@ function ItemDetalheModal({ item, onClose }: { item: any; onClose: () => void })
             <Campo label="Renovação" value={item.renovacao} />
             <Campo label="Ação Orçamentária" value={item.acao_orcamentaria} />
             <Campo label="Justificativa" value={item.justificativa} />
-            <Campo label="Status" value={item.ativo ? "Ativo" : "Inativo"} />
           </Secao>
 
           {item.link_pca && (
@@ -891,7 +890,13 @@ export default function RadarPage() {
                         <td className="px-4 py-2 max-w-[200px] truncate" title={item.orgao_entidade}>
                           {item.orgao_entidade}
                         </td>
-                        <td className="px-4 py-2 text-muted-foreground">{item.pdm_descricao || "—"}</td>
+                        <td className="px-4 py-2 text-muted-foreground">
+                          {item.pdm_descricao
+                            ? item.pdm_descricao
+                            : item.descricao_item
+                            ? item.descricao_item.slice(0, 40) + (item.descricao_item.length > 40 ? "…" : "")
+                            : "—"}
+                        </td>
                         <td className="px-4 py-2">
                           <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-medium">{item.uf}</span>
                         </td>
