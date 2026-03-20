@@ -376,7 +376,7 @@ export default function RadarPage() {
       const params = buildParams({ ...filtrosVazios, apenas_ativos: true });
       const r = await fetchRadarItens({
         ...params,
-        order_by: "data_importacao",
+        order_by: "id",
         order_dir: "DESC",
         limit: 10,
         page: 1,
