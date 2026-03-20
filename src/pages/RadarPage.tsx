@@ -365,7 +365,6 @@ export default function RadarPage() {
         setTimeline(tlData);
       }
     } catch (e) {
-      console.error("Erro timeline:", e);
     }
   }, []);
 
@@ -382,7 +381,6 @@ export default function RadarPage() {
       });
       if (r.success) setUltimasAdicoes(r.data.itens);
     } catch (e) {
-      console.error("Erro ultimas adicoes:", e);
     } finally {
       setCarregandoAdicoes(false);
     }
