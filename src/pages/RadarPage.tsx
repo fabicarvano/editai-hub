@@ -1013,8 +1013,8 @@ export default function RadarPage() {
                         setItemSelecionado(item);
                       }}
                     >
-                      <td className="max-w-[180px] truncate px-4 py-2 text-foreground" title={item.orgao_entidade}>
-                        {item.orgao_entidade?.slice(0, 30)}{item.orgao_entidade?.length > 30 ? "…" : ""}
+                      <td className="max-w-[180px] truncate px-4 py-2 text-foreground" title={item.unidade_nome || item.orgao_entidade}>
+                        {(item.unidade_nome || item.orgao_entidade)?.slice(0, 30)}{(item.unidade_nome || item.orgao_entidade)?.length > 30 ? "…" : ""}
                       </td>
                       <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground" title={item.pdm_descricao}>{item.pdm_descricao}</td>
                       <td className="px-4 py-2 text-muted-foreground">{item.categoria_item || item.categoria || "—"}</td>
