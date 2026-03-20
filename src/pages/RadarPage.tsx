@@ -100,7 +100,11 @@ function ItemDetalheModal({ item, onClose }: { item: any; onClose: () => void })
       <div className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-card shadow-2xl">
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 rounded-t-2xl border-b bg-card px-6 py-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-muted-foreground">{item.orgao_entidade}</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              {item.unidade_nome
+                ? <>{item.unidade_nome} <span className="text-muted-foreground/60">· {item.orgao_entidade}</span></>
+                : item.orgao_entidade}
+            </p>
             <h3 className="mt-1 text-base font-bold text-foreground">
               {item.pdm_descricao || item.descricao_item || "Item sem descrição"}
             </h3>
@@ -147,8 +151,9 @@ function ItemDetalheModal({ item, onClose }: { item: any; onClose: () => void })
           </Secao>
 
           <Secao titulo="Órgão / Localização">
-            <Campo label="Órgão" value={item.orgao_entidade} />
-            <Campo label="CNPJ" value={item.cnpj} />
+            <Campo label="Entidade" value={item.orgao_entidade} />
+            <Campo label="Unidade" value={item.unidade_nome} />
+            <Campo label="CNPJ" value={item.cnpj_orgao} />
             <Campo label="UF" value={item.uf} />
             <Campo label="Município" value={item.municipio} />
             <Campo label="Esfera" value={item.esfera_nome} />
