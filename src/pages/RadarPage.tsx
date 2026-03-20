@@ -885,8 +885,8 @@ export default function RadarPage() {
                   <tbody>
                     {ultimasAdicoes.map((item, i) => (
                       <tr key={item.id || i} className="border-t hover:bg-muted/20 cursor-pointer" onClick={() => setItemSelecionado(item)}>
-                        <td className="px-4 py-2 max-w-[200px] truncate" title={item.orgao_entidade}>
-                          {item.orgao_entidade}
+                        <td className="px-4 py-2 max-w-[200px] truncate" title={item.unidade_nome || item.orgao_entidade}>
+                          {item.unidade_nome || item.orgao_entidade}
                         </td>
                         <td className="px-4 py-2 text-muted-foreground">
                           {item.pdm_descricao
