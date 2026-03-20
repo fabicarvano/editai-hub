@@ -106,8 +106,23 @@ function ItemDetalheModal({ item, onClose }: { item: any; onClose: () => void })
                 : item.orgao_entidade}
             </p>
             <h3 className="mt-1 text-base font-bold text-foreground">
-              {item.pdm_descricao || item.descricao_item || "Item sem descrição"}
+              {item.pdm_descricao || "Item sem descrição"}
             </h3>
+            {!item.pdm_descricao && item.descricao_item && (
+              <div className="mt-2 max-h-24 overflow-y-auto rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground leading-relaxed">
+                {item.descricao_item}
+              </div>
+            )}
+            {item.pdm_descricao && item.descricao_item && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  Ver descrição completa
+                </summary>
+                <div className="mt-1 max-h-32 overflow-y-auto rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground leading-relaxed">
+                  {item.descricao_item}
+                </div>
+              </details>
+            )}
             <div className="mt-2 flex flex-wrap gap-1.5">
               {item.uf && <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{item.uf}</span>}
               {item.esfera_nome && <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{item.esfera_nome}</span>}
