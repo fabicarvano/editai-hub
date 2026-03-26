@@ -9,8 +9,8 @@ const modules = [
     icon: "📋",
     title: "Análise de Editais",
     description: "Análise prévia de edital, análise técnica de TR e análise de minuta de contrato por inteligência artificial",
-    badge: "Disponível",
-    active: true,
+    badge: "Em breve",
+    active: false,
     path: "/analise",
   },
   {
@@ -25,8 +25,8 @@ const modules = [
     icon: "❓",
     title: "Questionamentos Técnicos",
     description: "Geração inteligente de questionamentos técnicos com apoio de IA para análise e impugnação de editais",
-    badge: "Disponível",
-    active: true,
+    badge: "Em breve",
+    active: false,
     path: "/questionamentos",
   },
 ];
