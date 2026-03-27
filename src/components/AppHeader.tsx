@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Settings, LogOut } from "lucide-react";
 import { getNome, logout } from "@/lib/api";
 
-const LOGO_URL = "https://i.postimg.cc/Twbjzshm/decatron.png";
+
 
 export default function AppHeader() {
   const navigate = useNavigate();
@@ -11,12 +11,12 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center justify-between bg-secondary px-4 md:px-8">
-      <img
-        src={LOGO_URL}
-        alt="DECATRON"
-        className="h-8 cursor-pointer"
+      <span
+        className="cursor-pointer text-xl font-extrabold tracking-tight text-secondary-foreground"
         onClick={() => navigate("/hub")}
-      />
+      >
+        ATRIA<span className="text-primary">.IA.BR</span>
+      </span>
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
           {inicial}
