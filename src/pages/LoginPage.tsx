@@ -43,7 +43,9 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-[420px] rounded-xl bg-card p-8 shadow-2xl">
         <div className="mb-2 flex justify-center">
-          <img src={LOGO_URL} alt="DECATRON" className="h-12" />
+          <span className="text-3xl font-extrabold tracking-tight text-foreground">
+            ATRIA<span className="text-primary">.IA.BR</span>
+          </span>
         </div>
         <p className="mb-6 text-center text-sm text-muted-foreground">
           Plataforma Inteligente de Editais
